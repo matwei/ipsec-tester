@@ -22,6 +22,9 @@ pdf: images $(PDFS)
 subdirs: $(SUBDIRS)
 	for f in $(SUBDIRS); do cd $$f; make; done
 
+adr.pdf: doc/adr/*.md
+	cat doc/adr/*.md | pandoc -o $@
+
 README.pdf: images/ipsec-tester-dfd.png
 
 # vim:ft=make

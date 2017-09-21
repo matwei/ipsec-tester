@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS = foreign subdir-objects
 
 bin_PROGRAMS = itip
-itip_SOURCES = src/itip.c
+itip_SOURCES = src/itip.c src/datastore.h src/datastore.c
 
 dist_doc_DATA = README.md \
 doc/adr/0001-record-architecture-decisions.md doc/adr/0002-use-libpcap-and-libnet.md doc/adr/0003-only-work-with-configured-vpns.md

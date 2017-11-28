@@ -28,29 +28,73 @@
 
 #include "datastore.h"
 
-int mkdirunder(const char * basedir, const char * path) {
+typedef struct {
+	char * value;
+	char const * error;
+} string_err_s;
+
+static string_err_s add_address_path (datastore_s ds, struct sockaddr * sa, char * buf, size_t buflen) {
+	string_err_s out = {.value=buf};
+	char path[MAX_DS_PEER_PATH];
+	strncpy(out.value,ds.basedir,MAX_DS_PEER_PATH);
+	strncat(out.value,"/",MAX_DS_PEER_PATH - strlen(out.value));
+	int len = MAX_DS_PEER_PATH - strlen(out.value);
+	switch (sa->sa_family) {
+		case AF_INET:
+			snprintf(path,len,
+					"ip4/%02hhx/%02hhx/%02hhx/%02hhx",
+					sa->sa_data[2], sa->sa_data[3],
+					sa->sa_data[4], sa->sa_data[5]
+					);
+			break;
+		case AF_INET6:
+			snprintf(path,len,
+					"ip6/%02hhx%02hhx/%02hhx%02hhx"
+					"/%02hhx%02hhx/%02hhx%02hhx"
+					"/%02hhx%02hhx/%02hhx%02hhx"
+					"/%02hhx%02hhx/%02hhx%02hhx",
+					sa->sa_data[6],  sa->sa_data[7],
+					sa->sa_data[8],  sa->sa_data[9],
+					sa->sa_data[10], sa->sa_data[11],
+					sa->sa_data[12], sa->sa_data[13],
+					sa->sa_data[14], sa->sa_data[15],
+					sa->sa_data[16], sa->sa_data[17],
+					sa->sa_data[18], sa->sa_data[19],
+					sa->sa_data[20], sa->sa_data[21]
+					);
+			break;
+		default:
+			out.error = "add_address_path: unknown address family";
+	}
+	strncat(out.value,path,buflen);
+	return out;
+}
+
+static int mkdir_p(const char * path) {
 	int result = 0;
-	int len = strlen(basedir) + strlen(path) + 2;
+	int len = strlen(path) + 2;
 	char *dir = malloc(len);
 	char *pathc = strdup(path);
 	char *token;
 	struct stat buffer = {};
 
-	strcpy(dir,basedir);
+	*dir = 0;
 	token = strtok(pathc,"/");
-	while (token = strtok(NULL,"/")) {
-		strcat(dir,"/");
+	do {
 		strcat(dir,token);
 		if (stat(dir,&buffer)) {
-			// printf("mkdir %s\n", dir);
-			mkdir(dir,0777);
+			result = mkdir(dir,0777);
+			if (result) {
+				perror("mkdir_p");
+				break;
+			}
 		}
-	}
-mkdirunder_end:
+		strcat(dir,"/");
+	} while (token = strtok(NULL,"/"));
 	if (dir) free(dir);
 	if (pathc) free(pathc);
 	return result;
-} // mkdirunder()
+} // mkdir_p()
 
 datastore_s ds_load(const char * basedir) {
 	datastore_s ds = {};
@@ -82,35 +126,41 @@ peer_s ds_init_peer_ip(const datastore_s ds, const char * peer) {
 		return ps;
 	}
 	struct sockaddr *sa = (struct sockaddr *)result->ai_addr;
-	switch (sa->sa_family) {
-		case AF_INET:
-			snprintf(ps.path,MAX_DS_PEER_PATH,
-					"ip4/%02x/%02x/%02x/%02x",
-					(int)sa->sa_data[2],
-					(int)sa->sa_data[3],
-					(int)sa->sa_data[4],
-					(int)sa->sa_data[5]
-					);
-			break;
-		case AF_INET6:
-			snprintf(ps.path,MAX_DS_PEER_PATH,
-					"ip6/%02x%02x/%02x%02x/%02x%02x/%02x%02x"
-					"/%02x%02x/%02x%02x/%02x%02x/%02x%02x",
-					(int)sa->sa_data[6],  (int)sa->sa_data[7],
-					(int)sa->sa_data[8],  (int)sa->sa_data[9],
-					(int)sa->sa_data[10], (int)sa->sa_data[11],
-					(int)sa->sa_data[12], (int)sa->sa_data[13],
-					(int)sa->sa_data[14], (int)sa->sa_data[15],
-					(int)sa->sa_data[16], (int)sa->sa_data[17],
-					(int)sa->sa_data[18], (int)sa->sa_data[19],
-					(int)sa->sa_data[20], (int)sa->sa_data[21]
-					);
-			break;
-		default:
-			ps.error = "ds_init_peer_ip: unknown address family";
+	string_err_s path = add_address_path(ds, sa, ps.path, MAX_DS_PEER_PATH);
+	if (path.error) {
+		fprintf(stderr, "ds_init_peer: %s\n", path.error);
+		ps.error = path.error;
 	}
-	//printf("ds_init_peer: int %s\n", ps.path);
-	mkdirunder(ds.basedir,ps.path);
+	else if (mkdir_p(ps.path)) {
+		ps.error = strerror(errno);
+		fprintf(stderr, "ds_init_peer: mkdir %s: %s\n", ps.path, ps.error);
+	}
 	return ps;
 } // ds_init_peer_ip()
 
+char * ds_fname_peer(const datastore_s ds, peer_s peer, char *namebuf, size_t buflen, const char * fname) {
+	strncpy(namebuf, peer.path, buflen);
+	strncat(namebuf, "/", buflen - strlen(namebuf));
+	strncat(namebuf, fname, buflen - strlen(namebuf));
+	return namebuf;
+} // ds_fname_peer()
+
+char * ds_fname_sa(const datastore_s ds, struct sockaddr * sa, char * namebuf, size_t buflen, const char *fname) {
+	string_err_s path = add_address_path(ds, sa, namebuf, buflen - strlen(namebuf));
+	if (path.error) {
+		fprintf(stderr, "ds_peer_fname: %s\n", path.error);
+		return NULL;
+	}
+	struct stat sbuf = {};
+	if (stat(namebuf,&sbuf)) {
+		fprintf(stderr,"ds_peer_fname: can't stat %s\n", namebuf);
+		return NULL;
+	}
+	if ((sbuf.st_mode & S_IFMT) != S_IFDIR) {
+		fprintf(stderr,"ds_peer_fname: %s is not a directory\n", namebuf);
+		return NULL;
+	}
+	strncat(namebuf,"/",buflen - strlen(path.value));
+	strncat(namebuf,fname,buflen - strlen(path.value));
+	return path.value;
+} // ds_fname_sa()

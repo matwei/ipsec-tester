@@ -21,12 +21,15 @@
 #include <string.h>
 
 #include "datastore.h"
+#include "ipsec.h"
+#include "pcapture.h"
 
 // TODO: make this configurable
 #define IT_DATASTORE_BASEDIR "it-datastore"
 
 typedef struct options_s {
 	char const * cfgfile;
+	char const * device;
 	char const * peer;
 	char const * command;
 	char const * error;
@@ -40,10 +43,11 @@ options_s get_options(int argc, char **argv) {
 		int option_index = 0;
 		static struct option long_options[] = {
 			{ "config", required_argument, 0, 0 },
+			{ "device", required_argument, 0, 0 },
 			{ "peer",   required_argument, 0, 0 },
 			{ 0,        0,                 0, 0 }
 		};
-		c = getopt_long(argc, argv, "c:p:",
+		c = getopt_long(argc, argv, "c:d:p:",
 				long_options, &option_index);
 		if (-1 == c) 
 			break;
@@ -62,6 +66,9 @@ options_s get_options(int argc, char **argv) {
 				break;
 			case 'c':
 				opt.cfgfile = optarg;
+				break;
+			case 'd':
+				opt.device = optarg;
 				break;
 			case 'p':
 				opt.peer = optarg;
@@ -86,22 +93,29 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"error: %s\n", opt.error);
 		return 1;
 	}
+	datastore_s ds = ds_load(IT_DATASTORE_BASEDIR);
 	if (0 == strcmp("new-peer", opt.command)) {
+		peer_s peer;
 		if (NULL == opt.peer) {
 			fprintf(stderr, "error: need option --peer for command new-peer\n");
 			return 3;
 		}
-		datastore_s ds = ds_load(IT_DATASTORE_BASEDIR);
 		if (ds.error) {
 			fprintf(stderr,"error: %s\n", ds.error);
 			return 4;
 		}
-		//printf("new-peer %s\n", opt.peer);
-		ds_init_peer_ip(ds, opt.peer);
+		peer = ds_init_peer_ip(ds, opt.peer);
+		char fname[MAX_DS_PEER_PATH];
+		ds_fname_peer(ds, peer, fname, MAX_DS_PEER_PATH, "ipsec.pcap");
+		pcapture_create_file(opt.device, fname);
+	}
+	else if (0 == strcmp("listen", opt.command)) {
+		pcapture(opt.device, ds, handle_ipsec);
 	}
 	else {
 		fprintf(stderr,"error: unrecognized command: %s\n", opt.command);
 		return 2;
 	}
+	return 0;
 } // main()
 

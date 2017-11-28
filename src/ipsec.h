@@ -1,5 +1,5 @@
 /*
- * datastore.h
+ * ipsec.h
  * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,29 +16,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DATASTORE_H
-#define DATASTORE_H
+#ifndef IPSEC_H
+#define IPSEC_H
 
-#include <sys/socket.h>
+#include <sys/types.h>
 
-typedef struct datastore_s {
-	char const * basedir;
-	char const * error;
-} datastore_s;
+#include "datastore.h"
 
-#define MAX_DS_PEER_PATH 256
+typedef void (*ipsec_handler)(u_char *, const u_char *, size_t, datastore_s);
 
-typedef struct peer_s {
-	char path[MAX_DS_PEER_PATH];
-	char const * error;
-} peer_s;
+void handle_ipsec(u_char *, const u_char *, size_t, datastore_s);
 
-datastore_s ds_load(const char *);
-
-peer_s ds_get_peer(const datastore_s, struct sockaddr *);
-peer_s ds_init_peer_ip(const datastore_s, const char *);
-
-char * ds_fname_peer(const datastore_s, peer_s, char *, size_t, const char *);
-char * ds_fname_sa(const datastore_s, struct sockaddr *, char *, size_t, const char *);
-
-#endif /* !DATASTORE_H */
+#endif /* !IPSEC_H */

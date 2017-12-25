@@ -11,6 +11,8 @@ build/
 compile
 config.h.in
 configure
+doc/doxygen/html
+doc/doxygen/latex
 depcomp
 install-sh
 missing

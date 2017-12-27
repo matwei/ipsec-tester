@@ -1,5 +1,7 @@
+/** \file it-interpreter.c
+ * \brief main program for IPsec interpreter
+ */
 /*
- it-interpreter.c
  Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
 
  This program is free software: you can redistribute it and/or modify
@@ -27,6 +29,9 @@
 // TODO: make this configurable
 #define IT_DATASTORE_BASEDIR "it-datastore"
 
+/**
+ * \brief configuration options
+ */
 typedef struct options_s {
 	char const * cfgfile;
 	char const * device;
@@ -35,6 +40,12 @@ typedef struct options_s {
 	char const * error;
 } options_s;
 
+/**
+ * \brief read the command line options
+ * \param argc number of arguments from main()
+ * \param argv argument vector from main()
+ * \return configuration options
+ */
 options_s get_options(int argc, char **argv) {
 	int c;
 	options_s opt = { };

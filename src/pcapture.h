@@ -1,3 +1,6 @@
+/** \file pcapture.h
+ * \brief definitions for the packet capture
+ */
 /*
  * pcapture.h
  * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
@@ -28,17 +31,27 @@
 
 #define ETHER_ADDR_LEN 6
 
+/**
+ * \brief user data that is handed down from pcap_loop() to callback
+ *        function
+ */
 typedef struct {
 	datastore_s *ds;
 	pcap_t *handle;
 } pcapture_user_data;
 
+/**
+ * \brief ethernet header in captured datagram
+ */
 typedef struct {
 	uint8_t  ether_dst[ETHER_ADDR_LEN];
 	uint8_t  ether_src[ETHER_ADDR_LEN];
 	uint16_t ether_type;
 } sniff_ethernet;
 
+/**
+ * \brief IPv4 header in captured datagram
+ */
 typedef struct {
 	uint8_t  ihl : 4,
 		 version : 4;
@@ -58,6 +71,9 @@ typedef struct {
 #define IP4_MF 0x2000		/* more fragments flag */
 #define IP4_OFFMASK 0x1fff	/* mask for fragmenting bits */
 
+/**
+ * \brief IPv6 header in captured datagram
+ */
 typedef struct {
 	uint32_t vcf;
 	uint16_t length;

@@ -1,5 +1,7 @@
+/** \file ipsec.h
+ * \brief definitions regarding IPsec handling
+ */
 /*
- * ipsec.h
  * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -23,6 +25,9 @@
 
 #include "datastore.h"
 
+/**
+ * brief type definition for callback function
+ */
 typedef void (*ipsec_handler)(u_char *, const u_char *, size_t, datastore_s);
 
 void handle_ipsec(u_char *, const u_char *, size_t, datastore_s);

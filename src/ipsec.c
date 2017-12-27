@@ -1,5 +1,7 @@
+/** \file ipsec.c
+ * \brief IPsec related functions
+ */
 /*
- * ipsec.c
  * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
  *
  * This program is free software: you can redistribute it and/or modify

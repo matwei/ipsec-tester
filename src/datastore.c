@@ -1,5 +1,7 @@
+/** \file datastore.c
+ * \brief functions regarding the data store (DS)
+ */
 /*
- * datastore.c
  * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -96,6 +98,13 @@ static int mkdir_p(const char * path) {
 	return result;
 } // mkdir_p()
 
+/**
+ * \brief load the data from the store
+ * \param basedir the directory where the data store can be found
+ * \return a DS handle to access the data store
+ *
+ * Before using the DS handle, check `datastore_s.error` for any problems.
+ */
 datastore_s ds_load(const char * basedir) {
 	datastore_s ds = {};
 	struct stat buffer = {};
@@ -113,6 +122,14 @@ datastore_s ds_load(const char * basedir) {
 	return ds;
 } // ds_load()
 
+/**
+ * \brief initialize storage for a new peer
+ * \param ds a valid DS handle
+ * \param peer a string containing the address of the peer
+ * \return a handle to the storage for this peer
+ *
+ * Before using the handle, check `peer_s.error` for any problems.
+ */
 peer_s ds_init_peer_ip(const datastore_s ds, const char * peer) {
 	peer_s ps = {};
 	struct addrinfo hints = { .ai_family=AF_UNSPEC, .ai_socktype=SOCK_DGRAM };
@@ -138,6 +155,15 @@ peer_s ds_init_peer_ip(const datastore_s ds, const char * peer) {
 	return ps;
 } // ds_init_peer_ip()
 
+/**
+ * \brief get the full pathname to a file in the peer storage
+ * \param ds a DS handle
+ * \param peer a peer storage handle
+ * \param namebuf a buffer to hold the pathname
+ * \param buflen size of the buffer
+ * \param fname name of the file inside the peer storage
+ * \return full pathname
+ */
 char * ds_fname_peer(const datastore_s ds, peer_s peer, char *namebuf, size_t buflen, const char * fname) {
 	strncpy(namebuf, peer.path, buflen);
 	strncat(namebuf, "/", buflen - strlen(namebuf));
@@ -145,6 +171,15 @@ char * ds_fname_peer(const datastore_s ds, peer_s peer, char *namebuf, size_t bu
 	return namebuf;
 } // ds_fname_peer()
 
+/**
+ * \brief get the pathname to a file in the peer storage from an address
+ * \param ds a DS handle
+ * \param sa a struct sockaddr holding a peer address
+ * \param namebuf a buffer to hold the pathname
+ * \param buflen size of the buffer
+ * \param fname name of the file inside the peer storage
+ * \return full pathname
+ */
 char * ds_fname_sa(const datastore_s ds, struct sockaddr * sa, char * namebuf, size_t buflen, const char *fname) {
 	string_err_s path = add_address_path(ds, sa, namebuf, buflen - strlen(namebuf));
 	if (path.error) {

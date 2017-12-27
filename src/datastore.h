@@ -1,5 +1,7 @@
+/** \file datastore.h
+ * \brief definitions for the data store (DH)
+ */
 /*
- * datastore.h
  * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -21,6 +23,9 @@
 
 #include <sys/socket.h>
 
+/**
+ * \brief DS handle
+ */
 typedef struct datastore_s {
 	char const * basedir;
 	char const * error;
@@ -28,6 +33,9 @@ typedef struct datastore_s {
 
 #define MAX_DS_PEER_PATH 256
 
+/**
+ * \brief handle for a peer storage
+ */
 typedef struct peer_s {
 	char path[MAX_DS_PEER_PATH];
 	char const * error;

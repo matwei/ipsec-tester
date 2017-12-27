@@ -1,5 +1,7 @@
+/** \file pcapture.c
+ * \brief functions regarding packet capture
+ */
 /*
- * pcapture.c
  * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
  *
  * This program is free software: you can redistribute it and/or modify
@@ -101,6 +103,13 @@ static void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_c
 	}
 } // got_packet()
 
+/**
+ * \brief capture loop for IPsec interpreter
+ * \param dev name of network interface for IPsec
+ * \param ds DS handle
+ * \param ih callback function for captured packets
+ * \return return value from pcap_loop()
+ */
 int pcapture(char const *dev, datastore_s ds, ipsec_handler ih) {
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t *handle;
@@ -114,6 +123,12 @@ int pcapture(char const *dev, datastore_s ds, ipsec_handler ih) {
 	return result;
 } // pcapture()
 
+/**
+ * \brief create a PCAP file to dump the captured packets into
+ * \param dev name of network interface
+ * \param fname file name for the PCAP file
+ * \return ???
+ */
 int pcapture_create_file(char const *dev, char const *fname) {
 	pcap_t *handle;
 	pcap_dumper_t *dumper;

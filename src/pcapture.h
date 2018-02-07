@@ -38,6 +38,7 @@
 typedef struct {
 	datastore_s *ds;
 	pcap_t *handle;
+	ipsec_handler handler;
 } pcapture_user_data;
 
 /**

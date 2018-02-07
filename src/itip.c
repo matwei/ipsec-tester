@@ -25,6 +25,7 @@
 #include "datastore.h"
 #include "ipsec.h"
 #include "pcapture.h"
+#include "sockets.h"
 
 // TODO: make this configurable
 #define IT_DATASTORE_BASEDIR "it-datastore"
@@ -121,7 +122,8 @@ int main(int argc, char **argv) {
 		pcapture_create_file(opt.device, fname);
 	}
 	else if (0 == strcmp("listen", opt.command)) {
-		pcapture(opt.device, ds, handle_ipsec);
+		// pcapture(opt.device, ds, handle_ipsec);
+		iilisten(opt.device, ds, handle_ipsec);
 	}
 	else {
 		fprintf(stderr,"error: unrecognized command: %s\n", opt.command);

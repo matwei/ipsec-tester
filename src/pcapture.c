@@ -87,6 +87,7 @@ static void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_c
 					fprintf(stderr,"Could not dump %s: %s\n", namebuf, pcap_geterr(handle));
 				}
 			}
+			ud->handler((u_char *)ip4,header->caplen - sizeof(sniff_ethernet), ud->ds);
 		}
 		else if (0x86dd == et) {
 			if (header->caplen < sizeof(sniff_ethernet) + sizeof(sniff_ip6)) {
@@ -118,7 +119,7 @@ int pcapture(char const *dev, datastore_s ds, ipsec_handler ih) {
 	int result;
 
 	handle = get_handle(dev);
-	pcapture_user_data ud = {.ds=&ds, .handle=handle};
+	pcapture_user_data ud = {.ds=&ds, .handle=handle, .handler=ih};
 	result = pcap_loop(handle, -1, got_packet, (u_char *)&ud);
 	return result;
 } // pcapture()

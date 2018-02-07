@@ -26,10 +26,21 @@
 #include "datastore.h"
 
 /**
- * brief type definition for callback function
+ * \brief Callback function for IP packet handler
+ * 
+ * \param ip a pointer to the IPv4 or IPv6 packet data
+ * \param sz size of the IPv4 or IPv6 packet data as captured
+ * \param ds a pointer to the data store
  */
-typedef void (*ipsec_handler)(u_char *, const u_char *, size_t, datastore_s);
+typedef void (*ipsec_handler)(const u_char *ip, size_t sz, datastore_s *ds);
 
-void handle_ipsec(u_char *, const u_char *, size_t, datastore_s);
+void handle_ipsec(const u_char *, size_t, datastore_s *);
+
+/**
+ * \brief Callback to handle IKE datagrams
+ *
+ * \param fd the file descriptor of the receiving socket
+ */
+void ipsec_handle_ike(int fd);
 
 #endif /* !IPSEC_H */

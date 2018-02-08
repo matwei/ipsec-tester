@@ -11,8 +11,10 @@ AM_INIT_AUTOMAKE
 AC_PROG_CC
 
 # Checks for libraries.
+AC_CHECK_LIB([pcap],[pcap_create])
 
 # Checks for header files.
+AC_CHECK_HEADERS([pcap/pcap.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 

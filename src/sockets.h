@@ -21,6 +21,6 @@
 #ifndef IISOCKETS_H
 #define IISOCKETS_H
 
-int iilisten(char const *dev, datastore_s ds, ipsec_handler ih);
+int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih);
 
 #endif /* !IISOCKETS_H */

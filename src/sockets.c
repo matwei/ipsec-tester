@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #define MAX_EVENTS 64
+#define MAX_SOCKET_BUF 20480
 #define PORT_IKE "500"
 
 void add_fd(int efd, int fd, uint32_t events) {
@@ -73,6 +74,21 @@ int bind_socket(int family, int st, const char *port) {
 	return sockfd;
 }// bind_socket()
 
+ssize_t socket_recvfrom(int sockfd) {
+	unsigned char buf[MAX_SOCKET_BUF];
+	struct addrinfo pa;
+	socklen_t addrlen;
+	int result;
+
+	if (0 > (result = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&pa, &addrlen))) {
+		perror("socket_recvfrom");
+	}
+	else {
+		printf("received %d bytes with buffer of %d bytes\n", result, MAX_SOCKET_BUF);
+	}
+	return result;
+}// socket_revfrom()
+
 /**
  * \brief Listen for datagrams for the IPsec interpreter
  *
@@ -81,7 +97,7 @@ int bind_socket(int family, int st, const char *port) {
  * \param ih callback function for received datagrams
  * \return 0 on success, -1 on error condition
  */
-int iilisten(char const *dev, datastore_s ds, ipsec_handler ih) {
+int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
 	int efd, ikefd4;
 	struct epoll_event * events;
 
@@ -92,7 +108,7 @@ int iilisten(char const *dev, datastore_s ds, ipsec_handler ih) {
 		perror("epoll_create");
 		abort();
 	}
-	if (0 >= ikefd4) {
+	if (0 <= ikefd4) {
 		add_fd(efd, ikefd4, EPOLLIN);
 	}
 	events = calloc(MAX_EVENTS, sizeof(struct epoll_event));
@@ -105,10 +121,11 @@ int iilisten(char const *dev, datastore_s ds, ipsec_handler ih) {
 			}
 			else if (ikefd4 == events[i].data.fd) {
 				if (events[i].events & EPOLLIN) {
-					ipsec_handle_ike(ikefd4);
+					//ipsec_handle_ike(ikefd4);
+					socket_recvfrom(ikefd4);
 				}
 			}
 		}
 	}
 	close(ikefd4);
-}// iilisten()
+}// socket_listen()

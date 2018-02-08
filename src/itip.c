@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
 	}
 	else if (0 == strcmp("listen", opt.command)) {
 		// pcapture(opt.device, ds, handle_ipsec);
-		iilisten(opt.device, ds, handle_ipsec);
+		socket_listen(opt.device, ds, handle_ipsec);
 	}
 	else {
 		fprintf(stderr,"error: unrecognized command: %s\n", opt.command);

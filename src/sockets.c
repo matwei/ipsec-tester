@@ -106,18 +106,18 @@ ssize_t socket_recvfrom(int sockfd) {
  * \return 0 on success, -1 on error condition
  */
 int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
-	int efd, ikefd4;
+	int efd, ikefd;
 	struct epoll_event * events;
 
-	ikefd4 = bind_socket(AF_INET,SOCK_DGRAM, PORT_IKE);
+	ikefd = bind_socket(AF_INET6,SOCK_DGRAM, PORT_IKE);
 
 	efd = epoll_create1(0);
 	if (-1 == efd) {
 		perror("epoll_create");
 		abort();
 	}
-	if (0 <= ikefd4) {
-		add_fd(efd, ikefd4, EPOLLIN);
+	if (0 <= ikefd) {
+		add_fd(efd, ikefd, EPOLLIN);
 	}
 	events = calloc(MAX_EVENTS, sizeof(struct epoll_event));
 	while (1) {
@@ -127,13 +127,13 @@ int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
 				fprintf(stderr, "epoll error\n");
 				close(events[i].data.fd);
 			}
-			else if (ikefd4 == events[i].data.fd) {
+			else if (ikefd == events[i].data.fd) {
 				if (events[i].events & EPOLLIN) {
-					//ipsec_handle_ike(ikefd4);
-					socket_recvfrom(ikefd4);
+					//ipsec_handle_ike(ikefd);
+					socket_recvfrom(ikefd);
 				}
 			}
 		}
 	}
-	close(ikefd4);
+	close(ikefd);
 }// socket_listen()

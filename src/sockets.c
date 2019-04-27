@@ -35,6 +35,7 @@
 #define MAX_EVENTS 64
 #define MAX_SOCKET_BUF 20480
 #define PORT_IKE "500"
+#define PORT_IPSEC_NAT "4500"
 
 void add_fd(int efd, int fd, uint32_t events) {
 	struct epoll_event event = { .data.fd=fd, .events=events};
@@ -106,10 +107,11 @@ ssize_t socket_recvfrom(int sockfd) {
  * \return 0 on success, -1 on error condition
  */
 int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
-	int efd, ikefd;
+	int efd, ikefd, ipsecnatfd;
 	struct epoll_event * events;
 
 	ikefd = bind_socket(AF_INET6,SOCK_DGRAM, PORT_IKE);
+	ipsecnatfd = bind_socket(AF_INET6,SOCK_DGRAM, PORT_IPSEC_NAT);
 
 	efd = epoll_create1(0);
 	if (-1 == efd) {
@@ -118,6 +120,9 @@ int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
 	}
 	if (0 <= ikefd) {
 		add_fd(efd, ikefd, EPOLLIN);
+	}
+	if (0 <= ipsecnatfd) {
+		add_fd(efd, ipsecnatfd, EPOLLIN);
 	}
 	events = calloc(MAX_EVENTS, sizeof(struct epoll_event));
 	while (1) {
@@ -131,6 +136,12 @@ int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
 				if (events[i].events & EPOLLIN) {
 					//ipsec_handle_ike(ikefd);
 					socket_recvfrom(ikefd);
+				}
+			}
+			else if (ipsecnatfd == events[i].data.fd) {
+				if (events[i].events & EPOLLIN) {
+					//ipsec_handle_ike(ipsecnatfd);
+					socket_recvfrom(ipsecnatfd);
 				}
 			}
 		}

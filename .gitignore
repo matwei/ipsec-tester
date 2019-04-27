@@ -3,6 +3,10 @@
 
 *.pdf
 
+**/*.o
+**/*.swp
+
+Makefile
 Makefile.in
 Makefile.old
 aclocal.m4
@@ -10,11 +14,15 @@ autom4te.cache/
 build/
 compile
 config.h.in
+config.log
+config.status
 configure
 doc/doxygen/html
 doc/doxygen/latex
 depcomp
 install-sh
+itip
 missing
 src/.deps/
+src/.dirstamp
 

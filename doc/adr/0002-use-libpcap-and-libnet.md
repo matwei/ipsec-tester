@@ -5,7 +5,7 @@ Date: 2017-09-03
 
 ## Status
 
-Accepted
+Superceded by [4. Use sockets](0004-use-sockets.md)
 
 ## Context
 

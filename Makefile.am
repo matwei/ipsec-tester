@@ -3,6 +3,7 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 bin_PROGRAMS = itip
 itip_SOURCES = src/itip.c src/datastore.h src/datastore.c \
 	       src/sockets.c src/sockets.h src/ipsec.c src/ipsec.h src/pcapture.c src/pcapture.h
+itip_LDADD = -lzlog
 
 AM_LDFLAGS = -lpcap
 

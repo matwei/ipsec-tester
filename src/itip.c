@@ -105,6 +105,10 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"error: %s\n", opt.error);
 		return 1;
 	}
+	if (zlog_init(ITIP_ZLOG_CONF)) {
+		fprintf(stderr,"error: could not initialize zlog from '%s'\n", ITIP_ZLOG_CONF);
+		return 1;
+	}
 	datastore_s ds = ds_load(IT_DATASTORE_BASEDIR);
 	if (0 == strcmp("new-peer", opt.command)) {
 		peer_s peer;
@@ -127,8 +131,10 @@ int main(int argc, char **argv) {
 	}
 	else {
 		fprintf(stderr,"error: unrecognized command: %s\n", opt.command);
+		zlog_fini();
 		return 2;
 	}
+	zlog_fini();
 	return 0;
 } // main()
 

@@ -22,6 +22,7 @@
 #define IPSEC_H
 
 #include <sys/types.h>
+#include <zlog.h>
 
 #include "datastore.h"
 
@@ -42,5 +43,7 @@ void handle_ipsec(const u_char *, size_t, datastore_s *);
  * \param fd the file descriptor of the receiving socket
  */
 void ipsec_handle_ike(int fd);
+
+#define ITIP_ZLOG_CONF "zlog.conf"
 
 #endif /* !IPSEC_H */

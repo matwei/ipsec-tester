@@ -82,18 +82,20 @@ ssize_t socket_recvfrom(int sockfd) {
 	socklen_t addrlen = sizeof(addr);
 	char ipstr[INET6_ADDRSTRLEN];
 	int result;
+	zlog_category_t *zc;
 
 	if (0 > (result = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&addr, &addrlen))) {
 		perror("socket_recvfrom");
 	}
 	else {
-		printf("received %d bytes with buffer of %d bytes\n", result, MAX_SOCKET_BUF);
-		printf(" from IP address %s\n",
-		       inet_ntop(addr.ss_family,
-			         AF_INET == addr.ss_family
-				 ?  (void*)&(((struct sockaddr_in *)&addr)->sin_addr)
-				 :  (void*)&(((struct sockaddr_in6 *)&addr)->sin6_addr),
-			         ipstr, sizeof ipstr));
+		zc = zlog_get_category("NET");
+		zlog_info(zc, "received %d bytes from IP address %s",
+			  result,
+		          inet_ntop(addr.ss_family,
+			            AF_INET == addr.ss_family
+				    ?  (void*)&(((struct sockaddr_in *)&addr)->sin_addr)
+				    :  (void*)&(((struct sockaddr_in6 *)&addr)->sin6_addr),
+			            ipstr, sizeof ipstr));
 	}
 	return result;
 }// socket_revfrom()

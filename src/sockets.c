@@ -18,6 +18,9 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+/* need _GNU_SOURCE to get in6_pktinfo from netinet/in.h on linux */
+#define _GNU_SOURCE
+
 #include "datastore.h"
 #include "ipsec.h"
 #include "sockets.h"
@@ -76,29 +79,63 @@ int bind_socket(int family, int st, const char *port) {
 	return sockfd;
 }// bind_socket()
 
-ssize_t socket_recvfrom(int sockfd) {
+ssize_t socket_recvmsg(int sockfd) {
 	unsigned char buf[MAX_SOCKET_BUF];
-	struct sockaddr_storage addr;
-	socklen_t addrlen = sizeof(addr);
-	char ipstr[INET6_ADDRSTRLEN];
-	int result;
+	char ipstr1[INET6_ADDRSTRLEN], ipstr2[INET6_ADDRSTRLEN];
+	struct sockaddr_storage saddr = {},daddr = {};
+	struct msghdr msg;
+	struct iovec iov[1];
+	socklen_t addrlen = sizeof(saddr);
+	int flags, result;
 	zlog_category_t *zc;
+	struct cmsghdr *cmptr;
+	union {
+		struct cmsghdr cm; // this is to control the alignment
+		char   control[1000];
+	} control_un;
+	int opt = 1;
 
-	if (0 > (result = recvfrom(sockfd, buf, sizeof(buf), 0, (struct sockaddr *)&addr, &addrlen))) {
-		perror("socket_recvfrom");
+	msg.msg_control = control_un.control;
+	msg.msg_controllen = sizeof(control_un.control);
+	msg.msg_flags   = 0;
+	msg.msg_name    = &saddr;
+	msg.msg_namelen = sizeof(saddr);
+	iov[0].iov_base = buf;
+	iov[0].iov_len  = sizeof(buf);
+	msg.msg_iov     = iov;
+	msg.msg_iovlen  = 1;
+	flags           = 0;
+	zc = zlog_get_category("NET");
+	result = setsockopt(sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &opt, sizeof(opt));
+	if (result) {
+		perror("setsockopt");
+	}
+	if (0 > (result = recvmsg(sockfd, &msg, 0))) {
+		perror("socket_recvmsg");
 	}
 	else {
-		zc = zlog_get_category("NET");
-		zlog_info(zc, "received %d bytes from IP address %s",
+		for (cmptr = CMSG_FIRSTHDR(&msg); cmptr != NULL;
+		     cmptr = CMSG_NXTHDR(&msg, cmptr)) {
+			if (cmptr->cmsg_level == IPPROTO_IPV6 &&
+			    cmptr->cmsg_type  == IPV6_PKTINFO) {
+				struct in6_pktinfo *pkt = CMSG_DATA(cmptr);
+				struct in6_addr *dap = &(pkt->ipi6_addr);
+				memcpy(&daddr,dap,sizeof(daddr));
+			}
+		}
+		zlog_info(zc, "received %d bytes from IP address %s to %s",
 			  result,
-		          inet_ntop(addr.ss_family,
-			            AF_INET == addr.ss_family
-				    ?  (void*)&(((struct sockaddr_in *)&addr)->sin_addr)
-				    :  (void*)&(((struct sockaddr_in6 *)&addr)->sin6_addr),
-			            ipstr, sizeof ipstr));
+		          inet_ntop(saddr.ss_family,
+			            AF_INET == saddr.ss_family
+				    ?  (void*)&(((struct sockaddr_in *)&saddr)->sin_addr)
+				    :  (void*)&(((struct sockaddr_in6 *)&saddr)->sin6_addr),
+			            ipstr1, sizeof ipstr1),
+		          inet_ntop(AF_INET6,
+			            (void*)&daddr,
+			            ipstr2, sizeof ipstr2));
 	}
 	return result;
-}// socket_revfrom()
+}// socket_recvmsg()
 
 /**
  * \brief Listen for datagrams for the IPsec interpreter
@@ -137,13 +174,13 @@ int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
 			else if (ikefd == events[i].data.fd) {
 				if (events[i].events & EPOLLIN) {
 					//ipsec_handle_ike(ikefd);
-					socket_recvfrom(ikefd);
+					socket_recvmsg(ikefd);
 				}
 			}
 			else if (ipsecnatfd == events[i].data.fd) {
 				if (events[i].events & EPOLLIN) {
 					//ipsec_handle_ike(ipsecnatfd);
-					socket_recvfrom(ipsecnatfd);
+					socket_recvmsg(ipsecnatfd);
 				}
 			}
 		}

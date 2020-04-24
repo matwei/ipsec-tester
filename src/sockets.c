@@ -40,6 +40,8 @@
 #define PORT_IKE "500"
 #define PORT_IPSEC_NAT "4500"
 
+char * socket_type(int sockfd);
+
 void add_fd(int efd, int fd, uint32_t events) {
 	struct epoll_event event = { .data.fd=fd, .events=events};
 	int s = epoll_ctl(efd, EPOLL_CTL_ADD, fd, &event);
@@ -82,7 +84,8 @@ int bind_socket(int family, int st, const char *port) {
 ssize_t socket_recvmsg(int sockfd) {
 	unsigned char buf[MAX_SOCKET_BUF];
 	char ipstr1[INET6_ADDRSTRLEN], ipstr2[INET6_ADDRSTRLEN];
-	struct sockaddr_storage saddr = {},daddr = {};
+	struct sockaddr_in6 saddr = {},daddr = {}, laddr = {};
+	socklen_t laddrlen = sizeof(laddr);
 	struct msghdr msg;
 	struct iovec iov[1];
 	socklen_t addrlen = sizeof(saddr);
@@ -110,6 +113,9 @@ ssize_t socket_recvmsg(int sockfd) {
 	if (result) {
 		perror("setsockopt");
 	}
+	if (0 > (result = getsockname(sockfd, &laddr, &laddrlen))) {
+		perror("getsockname");
+	}
 	if (0 > (result = recvmsg(sockfd, &msg, 0))) {
 		perror("socket_recvmsg");
 	}
@@ -123,16 +129,17 @@ ssize_t socket_recvmsg(int sockfd) {
 				memcpy(&daddr,dap,sizeof(daddr));
 			}
 		}
-		zlog_info(zc, "received %d bytes from IP address %s to %s",
+		zlog_info(zc, "rcvd %d bytes %s [%s]:%hu to [%s]:%hu",
 			  result,
-		          inet_ntop(saddr.ss_family,
-			            AF_INET == saddr.ss_family
-				    ?  (void*)&(((struct sockaddr_in *)&saddr)->sin_addr)
-				    :  (void*)&(((struct sockaddr_in6 *)&saddr)->sin6_addr),
+			  socket_type(sockfd),
+		          inet_ntop(AF_INET6,
+				    (void*)&(saddr.sin6_addr),
 			            ipstr1, sizeof ipstr1),
+			  ntohs(saddr.sin6_port),
 		          inet_ntop(AF_INET6,
 			            (void*)&daddr,
-			            ipstr2, sizeof ipstr2));
+			            ipstr2, sizeof ipstr2),
+			  ntohs(laddr.sin6_port));
 	}
 	return result;
 }// socket_recvmsg()
@@ -187,3 +194,20 @@ int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
 	}
 	close(ikefd);
 }// socket_listen()
+
+char * socket_type(int sockfd) {
+	int type;
+	socklen_t length = sizeof(type);
+
+	if (getsockopt(sockfd, SOL_SOCKET, SO_TYPE, &type, &length)) {
+		perror("socket_type");
+		return NULL;
+	}
+	switch (type) {
+		case SOCK_STREAM: return "TCP";
+		case SOCK_DGRAM:  return "UDP";
+		case SOCK_RAW:    return "RAW";
+		default:          return "UNKOWN";
+	}
+}// socket_type()
+

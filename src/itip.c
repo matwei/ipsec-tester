@@ -22,13 +22,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "datastore.h"
 #include "ipsec.h"
-#include "pcapture.h"
 #include "sockets.h"
-
-// TODO: make this configurable
-#define IT_DATASTORE_BASEDIR "it-datastore"
 
 /**
  * \brief configuration options
@@ -90,12 +85,6 @@ options_s get_options(int argc, char **argv) {
 				return opt;
 		}
 	}
-	if (argc <= optind) {
-		opt.error = "missing command";
-	}
-	else {
-		opt.command = argv[optind];
-	}
 	return opt;
 } // get_options()
 
@@ -109,31 +98,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"error: could not initialize zlog from '%s'\n", ITIP_ZLOG_CONF);
 		return 1;
 	}
-	datastore_s ds = ds_load(IT_DATASTORE_BASEDIR);
-	if (0 == strcmp("new-peer", opt.command)) {
-		peer_s peer;
-		if (NULL == opt.peer) {
-			fprintf(stderr, "error: need option --peer for command new-peer\n");
-			return 3;
-		}
-		if (ds.error) {
-			fprintf(stderr,"error: %s\n", ds.error);
-			return 4;
-		}
-		peer = ds_init_peer_ip(ds, opt.peer);
-		char fname[MAX_DS_PEER_PATH];
-		ds_fname_peer(ds, peer, fname, MAX_DS_PEER_PATH, "ipsec.pcap");
-		pcapture_create_file(opt.device, fname);
-	}
-	else if (0 == strcmp("listen", opt.command)) {
-		// pcapture(opt.device, ds, handle_ipsec);
-		socket_listen(opt.device, ds, handle_ipsec);
-	}
-	else {
-		fprintf(stderr,"error: unrecognized command: %s\n", opt.command);
-		zlog_fini();
-		return 2;
-	}
+	socket_listen(opt.device, handle_ipsec);
 	zlog_fini();
 	return 0;
 } // main()

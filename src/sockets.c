@@ -152,7 +152,7 @@ ssize_t socket_recvmsg(int sockfd) {
  * \param ih callback function for received datagrams
  * \return 0 on success, -1 on error condition
  */
-int socket_listen(char const *dev, datastore_s ds, ipsec_handler ih) {
+int socket_listen(char const *dev, ipsec_handler ih) {
 	int efd, ikefd, ipsecnatfd;
 	struct epoll_event * events;
 

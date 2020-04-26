@@ -24,18 +24,19 @@
 #include <sys/types.h>
 #include <zlog.h>
 
-#include "datastore.h"
+typedef struct {
+} ipsec_s;
 
 /**
  * \brief Callback function for IP packet handler
  * 
  * \param ip a pointer to the IPv4 or IPv6 packet data
  * \param sz size of the IPv4 or IPv6 packet data as captured
- * \param ds a pointer to the data store
+ * \param is a pointer to the ipsec state information
  */
-typedef void (*ipsec_handler)(const u_char *ip, size_t sz, datastore_s *ds);
+typedef void (*ipsec_handler)(const u_char *ip, size_t sz, ipsec_s *is);
 
-void handle_ipsec(const u_char *, size_t, datastore_s *);
+void handle_ipsec(const u_char *, size_t, ipsec_s *);
 
 /**
  * \brief Callback to handle IKE datagrams

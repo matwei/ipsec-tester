@@ -22,7 +22,7 @@
 
 #include "ipsec.h"
 
-void handle_ipsec(const u_char *packet, size_t psize, datastore_s *ds) {
+void handle_ipsec(const u_char *packet, size_t psize, ipsec_s *ds) {
 	printf("handle_ipsec()\n");
 	return;
 } // handle_ipsec()

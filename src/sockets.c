@@ -21,7 +21,6 @@
 /* need _GNU_SOURCE to get in6_pktinfo from netinet/in.h on linux */
 #define _GNU_SOURCE
 
-#include "datastore.h"
 #include "ipsec.h"
 #include "sockets.h"
 

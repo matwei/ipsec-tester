@@ -24,7 +24,6 @@
 #include "ipsec.h"
 #include "sockets.h"
 
-#include <arpa/inet.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,17 +77,51 @@ int bind_socket(int family, int st, const char *port) {
 	return sockfd;
 }// bind_socket()
 
+datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
+	int type;
+	struct cmsghdr *cmptr;
+	socklen_t length = sizeof(type);
+	struct sockaddr_in6 *raddr = (struct sockaddr_in6 *)sm->msg.msg_name;
+	struct sockaddr_in6 laddr = {};
+	socklen_t laddrlen = sizeof(laddr);
+
+	if (getsockopt(sm->sockfd, SOL_SOCKET, SO_TYPE, &type, &length)) {
+		perror("socket_type");
+	}
+	switch (type) {
+		case SOCK_STREAM: ds->sock_type =  "TCP"; break;
+		case SOCK_DGRAM:  ds->sock_type =  "UDP"; break;
+		case SOCK_RAW:    ds->sock_type =  "RAW"; break;
+		default:          ds->sock_type =  "UNKOWN";
+	}
+	for (cmptr = CMSG_FIRSTHDR(&sm->msg); cmptr != NULL;
+	     cmptr = CMSG_NXTHDR(&sm->msg, cmptr)) {
+		if (cmptr->cmsg_level == IPPROTO_IPV6 &&
+		    cmptr->cmsg_type  == IPV6_PKTINFO) {
+			struct in6_pktinfo *pkt = (struct in6_pktinfo*)CMSG_DATA(cmptr);
+			struct in6_addr *dap = &(pkt->ipi6_addr);
+			inet_ntop(AF_INET6,
+				  (void*)dap,
+				  ds->laddr, sizeof(ds->laddr));
+		}
+	}
+	if (0 > getsockname(sm->sockfd, &laddr, &laddrlen)) {
+		perror("getsockname");
+	}
+	ds->lport = ntohs(laddr.sin6_port);
+	inet_ntop(AF_INET6,
+	          (void*)&(raddr->sin6_addr),
+	          ds->raddr, sizeof(ds->raddr));
+	ds->rport = ntohs(raddr->sin6_port);
+	return ds;
+} // get_ds()
+
 ssize_t socket_recvmsg(int sockfd) {
 	unsigned char buf[MAX_SOCKET_BUF];
-	char ipstr1[INET6_ADDRSTRLEN], ipstr2[INET6_ADDRSTRLEN];
-	struct sockaddr_in6 saddr = {},daddr = {}, laddr = {};
-	socklen_t laddrlen = sizeof(laddr);
+	struct sockaddr_in6 saddr = {};
 	struct msghdr msg;
 	struct iovec iov[1];
-	socklen_t addrlen = sizeof(saddr);
-	int flags, result;
-	zlog_category_t *zc;
-	struct cmsghdr *cmptr;
+	int result;
 	union {
 		struct cmsghdr cm; // this is to control the alignment
 		char   control[1000];
@@ -104,41 +137,27 @@ ssize_t socket_recvmsg(int sockfd) {
 	iov[0].iov_len  = sizeof(buf);
 	msg.msg_iov     = iov;
 	msg.msg_iovlen  = 1;
-	flags           = 0;
-	zc = zlog_get_category("NET");
+
 	result = setsockopt(sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &opt, sizeof(opt));
 	if (result) {
 		perror("setsockopt");
-	}
-	if (0 > (result = getsockname(sockfd, &laddr, &laddrlen))) {
-		perror("getsockname");
 	}
 	if (0 > (result = recvmsg(sockfd, &msg, 0))) {
 		perror("socket_recvmsg");
 	}
 	else {
-		for (cmptr = CMSG_FIRSTHDR(&msg); cmptr != NULL;
-		     cmptr = CMSG_NXTHDR(&msg, cmptr)) {
-			if (cmptr->cmsg_level == IPPROTO_IPV6 &&
-			    cmptr->cmsg_type  == IPV6_PKTINFO) {
-				struct in6_pktinfo *pkt = CMSG_DATA(cmptr);
-				struct in6_addr *dap = &(pkt->ipi6_addr);
-				memcpy(&daddr,dap,sizeof(daddr));
-			}
-		}
+		socket_msg sm = { .sockfd = sockfd, .msg = msg };
+		datagram_spec ds ={};
+		get_ds(&ds,&sm);
+		zlog_category_t *zc = zlog_get_category("NET");
 		zlog_info(zc, "rcvd %d bytes %s [%s]:%hu to [%s]:%hu",
 			  result,
-			  socket_type(sockfd),
-		          inet_ntop(AF_INET6,
-				    (void*)&(saddr.sin6_addr),
-			            ipstr1, sizeof ipstr1),
-			  ntohs(saddr.sin6_port),
-		          inet_ntop(AF_INET6,
-			            (void*)&daddr,
-			            ipstr2, sizeof ipstr2),
-			  ntohs(laddr.sin6_port));
+			  ds.sock_type,
+			  ds.raddr,
+			  ds.rport,
+			  ds.laddr,
+			  ds.lport);
 		// send the datagramm back as echo
-		socket_msg sm = { .sockfd = sockfd, .msg = msg };
 		sm.msg.msg_iov[0].iov_len= result;
 		socket_sendmsg(&sm);
 	}
@@ -146,7 +165,19 @@ ssize_t socket_recvmsg(int sockfd) {
 }// socket_recvmsg()
 
 ssize_t socket_sendmsg(socket_msg *sm) {
+	datagram_spec ds ={};
+	zlog_category_t *zc;
+
 	ssize_t result = sendmsg(sm->sockfd, &(sm->msg), MSG_DONTWAIT);
+	get_ds(&ds, sm);
+	zc = zlog_get_category("NET");
+	zlog_info(zc, "sent %zu bytes %s [%s]:%hu to [%s]:%hu",
+		  result,
+		  ds.sock_type,
+		  ds.laddr,
+		  ds.lport,
+		  ds.raddr,
+		  ds.rport);
 	return result;
 }// socket_sendmsg()
 

@@ -21,6 +21,7 @@
 #ifndef IISOCKETS_H
 #define IISOCKETS_H
 
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -28,6 +29,14 @@ typedef struct {
 	int sockfd;
 	struct msghdr msg;
 } socket_msg;
+
+typedef struct {
+	char * sock_type;
+	char laddr[INET6_ADDRSTRLEN];
+	unsigned short lport;
+	char raddr[INET6_ADDRSTRLEN];
+	unsigned short rport;
+} datagram_spec;
 
 int socket_listen(char const *dev, ipsec_handler ih);
 ssize_t socket_sendmsg(socket_msg *sm);

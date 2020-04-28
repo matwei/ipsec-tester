@@ -21,6 +21,15 @@
 #ifndef IISOCKETS_H
 #define IISOCKETS_H
 
+#include <sys/socket.h>
+#include <sys/types.h>
+
+typedef struct {
+	int sockfd;
+	struct msghdr msg;
+} socket_msg;
+
 int socket_listen(char const *dev, ipsec_handler ih);
+ssize_t socket_sendmsg(socket_msg *sm);
 
 #endif /* !IISOCKETS_H */

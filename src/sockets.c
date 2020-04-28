@@ -30,8 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/epoll.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <unistd.h>
 
 #define MAX_EVENTS 64
@@ -139,9 +137,18 @@ ssize_t socket_recvmsg(int sockfd) {
 			            (void*)&daddr,
 			            ipstr2, sizeof ipstr2),
 			  ntohs(laddr.sin6_port));
+		// send the datagramm back as echo
+		socket_msg sm = { .sockfd = sockfd, .msg = msg };
+		sm.msg.msg_iov[0].iov_len= result;
+		socket_sendmsg(&sm);
 	}
 	return result;
 }// socket_recvmsg()
+
+ssize_t socket_sendmsg(socket_msg *sm) {
+	ssize_t result = sendmsg(sm->sockfd, &(sm->msg), MSG_DONTWAIT);
+	return result;
+}// socket_sendmsg()
 
 /**
  * \brief Listen for datagrams for the IPsec interpreter

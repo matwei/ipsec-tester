@@ -32,7 +32,6 @@
 #include <unistd.h>
 
 #define MAX_EVENTS 64
-#define MAX_SOCKET_BUF 20480
 #define PORT_IKE "500"
 #define PORT_IPSEC_NAT "4500"
 
@@ -78,17 +77,16 @@ int bind_socket(int family, int st, const char *port) {
 }// bind_socket()
 
 datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
-	int type;
 	struct cmsghdr *cmptr;
-	socklen_t length = sizeof(type);
+	socklen_t length = sizeof(ds->so_type);
 	struct sockaddr_in6 *raddr = (struct sockaddr_in6 *)sm->msg.msg_name;
 	struct sockaddr_in6 laddr = {};
 	socklen_t laddrlen = sizeof(laddr);
 
-	if (getsockopt(sm->sockfd, SOL_SOCKET, SO_TYPE, &type, &length)) {
+	if (getsockopt(sm->sockfd, SOL_SOCKET, SO_TYPE, &(ds->so_type), &length)) {
 		perror("socket_type");
 	}
-	switch (type) {
+	switch (ds->so_type) {
 		case SOCK_STREAM: ds->sock_type =  "TCP"; break;
 		case SOCK_DGRAM:  ds->sock_type =  "UDP"; break;
 		case SOCK_RAW:    ds->sock_type =  "RAW"; break;
@@ -117,7 +115,6 @@ datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
 } // get_ds()
 
 ssize_t socket_recvmsg(socket_msg *smp) {
-	unsigned char buf[MAX_SOCKET_BUF];
 	struct sockaddr_in6 saddr = {};
 	struct iovec iov[1];
 	int result;
@@ -132,8 +129,8 @@ ssize_t socket_recvmsg(socket_msg *smp) {
 	smp->msg.msg_flags   = 0;
 	smp->msg.msg_name    = &saddr;
 	smp->msg.msg_namelen = sizeof(saddr);
-	iov[0].iov_base = buf;
-	iov[0].iov_len  = sizeof(buf);
+	iov[0].iov_base = smp->buf;
+	iov[0].iov_len  = sizeof(smp->buf);
 	smp->msg.msg_iov     = iov;
 	smp->msg.msg_iovlen  = 1;
 

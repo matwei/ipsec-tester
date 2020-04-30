@@ -20,18 +20,46 @@
 
 #include "ipsec.h"
 
+#include <string.h>
+
 void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	socket_msg sm = { .sockfd=fd };
 	ssize_t result;
+	unsigned long spi = 0;
+	int diff = (memcmp(&spi,sm.buf,4));
+	if (diff) {
+		printf("not null\n");
+	}
 
 	char mdc_buf[5];
 	unsigned int mdc_cnt = ++(is->mdc_counter);
 	snprintf(mdc_buf,sizeof(mdc_buf),"%4.4x",mdc_cnt);
 	zlog_put_mdc("dg", mdc_buf);
 
-	if (0 < (result = socket_recvmsg(&sm))) {
-		// send the datagramm back as echo
-		sm.msg.msg_iov[0].iov_len= result;
-		socket_sendmsg(&sm);
+	if (0 >= (result = socket_recvmsg(&sm))) {
+		return;
 	}
+
+	datagram_spec ds = {};
+	get_ds(&ds, &sm);
+	if (SOCK_DGRAM == ds.so_type) {
+		if (500 == ds.lport) {
+			zlog_category_t *zc = zlog_get_category("IKE");
+			zlog_info(zc, "investigating IKE datagram");
+		}
+		if (4500 == ds.lport) {
+			if (memcmp(&spi,sm.buf,4)) {
+				zlog_category_t *zc = zlog_get_category("ESP");
+				zlog_info(zc, "investigating NAT-T ESP datagram");
+			}
+			else {
+				zlog_category_t *zc = zlog_get_category("IKE");
+				zlog_info(zc, "investigating IKE datagram");
+			}
+		}
+	}
+
+	// send the datagramm back as echo
+	sm.msg.msg_iov[0].iov_len= result;
+	socket_sendmsg(&sm);
 }// ipsec_handle_ike()

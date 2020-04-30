@@ -25,12 +25,16 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#define MAX_SOCKET_BUF 20480
+
 typedef struct {
 	int sockfd;
 	struct msghdr msg;
+	unsigned char buf[MAX_SOCKET_BUF];
 } socket_msg;
 
 typedef struct {
+	int so_type;
 	char * sock_type;
 	char laddr[INET6_ADDRSTRLEN];
 	unsigned short lport;
@@ -40,6 +44,7 @@ typedef struct {
 
 typedef void (*socket_cb_handler)(int sockfd, void * cb_env);
 
+datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm);
 int socket_listen(char const *dev, socket_cb_handler cb, void *env);
 ssize_t socket_recvmsg(socket_msg *sm);
 ssize_t socket_sendmsg(socket_msg *sm);

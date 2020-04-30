@@ -38,7 +38,10 @@ typedef struct {
 	unsigned short rport;
 } datagram_spec;
 
-int socket_listen(char const *dev, ipsec_handler ih);
+typedef void (*socket_cb_handler)(int sockfd, void * cb_env);
+
+int socket_listen(char const *dev, socket_cb_handler cb, void *env);
+ssize_t socket_recvmsg(socket_msg *sm);
 ssize_t socket_sendmsg(socket_msg *sm);
 
 #endif /* !IISOCKETS_H */

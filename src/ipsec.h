@@ -21,29 +21,23 @@
 #ifndef IPSEC_H
 #define IPSEC_H
 
+#include "sockets.h"
+
 #include <sys/types.h>
 #include <zlog.h>
 
 typedef struct {
+	int mdc_counter;
 } ipsec_s;
 
 /**
- * \brief Callback function for IP packet handler
- * 
- * \param ip a pointer to the IPv4 or IPv6 packet data
- * \param sz size of the IPv4 or IPv6 packet data as captured
- * \param is a pointer to the ipsec state information
- */
-typedef void (*ipsec_handler)(const u_char *ip, size_t sz, ipsec_s *is);
-
-void handle_ipsec(const u_char *, size_t, ipsec_s *);
-
-/**
- * \brief Callback to handle IKE datagrams
+ * \brief Callback to handle IPsec datagrams
  *
  * \param fd the file descriptor of the receiving socket
  */
-void ipsec_handle_ike(int fd);
+typedef void (*ipsec_dg_handler)(int fd, ipsec_s *is);
+
+void ipsec_handle_datagram(int, ipsec_s *);
 
 #define ITIP_ZLOG_CONF "zlog.conf"
 

@@ -89,6 +89,8 @@ options_s get_options(int argc, char **argv) {
 } // get_options()
 
 int main(int argc, char **argv) {
+	ipsec_s is = {};
+
 	options_s opt = get_options(argc, argv);
 	if (opt.error) {
 		fprintf(stderr,"error: %s\n", opt.error);
@@ -98,7 +100,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"error: could not initialize zlog from '%s'\n", ITIP_ZLOG_CONF);
 		return 1;
 	}
-	socket_listen(opt.device, handle_ipsec);
+	socket_listen(opt.device, (socket_cb_handler)ipsec_handle_datagram, &is);
 	zlog_fini();
 	return 0;
 } // main()

@@ -116,10 +116,9 @@ datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
 	return ds;
 } // get_ds()
 
-ssize_t socket_recvmsg(int sockfd) {
+ssize_t socket_recvmsg(socket_msg *smp) {
 	unsigned char buf[MAX_SOCKET_BUF];
 	struct sockaddr_in6 saddr = {};
-	struct msghdr msg;
 	struct iovec iov[1];
 	int result;
 	union {
@@ -128,27 +127,26 @@ ssize_t socket_recvmsg(int sockfd) {
 	} control_un;
 	int opt = 1;
 
-	msg.msg_control = control_un.control;
-	msg.msg_controllen = sizeof(control_un.control);
-	msg.msg_flags   = 0;
-	msg.msg_name    = &saddr;
-	msg.msg_namelen = sizeof(saddr);
+	smp->msg.msg_control = control_un.control;
+	smp->msg.msg_controllen = sizeof(control_un.control);
+	smp->msg.msg_flags   = 0;
+	smp->msg.msg_name    = &saddr;
+	smp->msg.msg_namelen = sizeof(saddr);
 	iov[0].iov_base = buf;
 	iov[0].iov_len  = sizeof(buf);
-	msg.msg_iov     = iov;
-	msg.msg_iovlen  = 1;
+	smp->msg.msg_iov     = iov;
+	smp->msg.msg_iovlen  = 1;
 
-	result = setsockopt(sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &opt, sizeof(opt));
+	result = setsockopt(smp->sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &opt, sizeof(opt));
 	if (result) {
 		perror("setsockopt");
 	}
-	if (0 > (result = recvmsg(sockfd, &msg, 0))) {
+	if (0 > (result = recvmsg(smp->sockfd, &(smp->msg), 0))) {
 		perror("socket_recvmsg");
 	}
 	else {
-		socket_msg sm = { .sockfd = sockfd, .msg = msg };
 		datagram_spec ds ={};
-		get_ds(&ds,&sm);
+		get_ds(&ds,smp);
 		zlog_category_t *zc = zlog_get_category("NET");
 		zlog_info(zc, "rcvd %d bytes %s [%s]:%hu to [%s]:%hu",
 			  result,
@@ -157,9 +155,6 @@ ssize_t socket_recvmsg(int sockfd) {
 			  ds.rport,
 			  ds.laddr,
 			  ds.lport);
-		// send the datagramm back as echo
-		sm.msg.msg_iov[0].iov_len= result;
-		socket_sendmsg(&sm);
 	}
 	return result;
 }// socket_recvmsg()
@@ -189,7 +184,7 @@ ssize_t socket_sendmsg(socket_msg *sm) {
  * \param ih callback function for received datagrams
  * \return 0 on success, -1 on error condition
  */
-int socket_listen(char const *dev, ipsec_handler ih) {
+int socket_listen(char const *dev, socket_cb_handler cb, void * cb_env) {
 	int efd, ikefd, ipsecnatfd;
 	struct epoll_event * events;
 
@@ -217,14 +212,12 @@ int socket_listen(char const *dev, ipsec_handler ih) {
 			}
 			else if (ikefd == events[i].data.fd) {
 				if (events[i].events & EPOLLIN) {
-					//ipsec_handle_ike(ikefd);
-					socket_recvmsg(ikefd);
+					cb(ikefd, cb_env);
 				}
 			}
 			else if (ipsecnatfd == events[i].data.fd) {
 				if (events[i].events & EPOLLIN) {
-					//ipsec_handle_ike(ipsecnatfd);
-					socket_recvmsg(ipsecnatfd);
+					cb(ipsecnatfd, cb_env);
 				}
 			}
 		}

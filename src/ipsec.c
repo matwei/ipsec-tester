@@ -18,16 +18,20 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h>
-
 #include "ipsec.h"
 
-void handle_ipsec(const u_char *packet, size_t psize, ipsec_s *ds) {
-	printf("handle_ipsec()\n");
-	return;
-} // handle_ipsec()
+void ipsec_handle_datagram(int fd, ipsec_s * is) {
+	socket_msg sm = { .sockfd=fd };
+	ssize_t result;
 
-void ipsec_handle_ike(int fd) {
-	printf("ipsec_handle_ike()\n");
-	return;
+	char mdc_buf[5];
+	unsigned int mdc_cnt = ++(is->mdc_counter);
+	snprintf(mdc_buf,sizeof(mdc_buf),"%4.4x",mdc_cnt);
+	zlog_put_mdc("dg", mdc_buf);
+
+	if (0 < (result = socket_recvmsg(&sm))) {
+		// send the datagramm back as echo
+		sm.msg.msg_iov[0].iov_len= result;
+		socket_sendmsg(&sm);
+	}
 }// ipsec_handle_ike()

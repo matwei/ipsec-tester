@@ -115,23 +115,17 @@ datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
 } // get_ds()
 
 ssize_t socket_recvmsg(socket_msg *smp) {
-	struct sockaddr_in6 saddr = {};
-	struct iovec iov[1];
 	int result;
-	union {
-		struct cmsghdr cm; // this is to control the alignment
-		char   control[1000];
-	} control_un;
 	int opt = 1;
 
-	smp->msg.msg_control = control_un.control;
-	smp->msg.msg_controllen = sizeof(control_un.control);
+	smp->msg.msg_control = smp->control_un.control;
+	smp->msg.msg_controllen = sizeof(smp->control_un.control);
 	smp->msg.msg_flags   = 0;
-	smp->msg.msg_name    = &saddr;
-	smp->msg.msg_namelen = sizeof(saddr);
-	iov[0].iov_base = smp->buf;
-	iov[0].iov_len  = sizeof(smp->buf);
-	smp->msg.msg_iov     = iov;
+	smp->msg.msg_name    = &(smp->paddr);
+	smp->msg.msg_namelen = sizeof(smp->paddr);
+	smp->iov[0].iov_base = smp->buf;
+	smp->iov[0].iov_len  = sizeof(smp->buf);
+	smp->msg.msg_iov     = smp->iov;
 	smp->msg.msg_iovlen  = 1;
 
 	result = setsockopt(smp->sockfd, IPPROTO_IPV6, IPV6_RECVPKTINFO, &opt, sizeof(opt));

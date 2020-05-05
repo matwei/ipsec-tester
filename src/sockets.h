@@ -25,11 +25,17 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#define MAX_SOCKET_BUF 20480
+#define MAX_SOCKET_BUF 10240
 
 typedef struct {
 	int sockfd;
 	struct msghdr msg;
+	struct sockaddr_in6 paddr;
+	struct iovec iov[1];
+	union {
+		struct cmsghdr cm; // this is to control the alignment
+		char   control[1000];
+	} control_un;
 	unsigned char buf[MAX_SOCKET_BUF];
 } socket_msg;
 

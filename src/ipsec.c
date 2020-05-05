@@ -22,6 +22,34 @@
 
 #include <string.h>
 
+typedef struct __attribute__((__packed__)) {
+	uint64_t ispi, rspi;
+	uint8_t npl, version, extype, flags;
+	uint32_t mid, length;
+} ike_header;
+
+int approve_ike_header(unsigned char *buf,
+		       ssize_t buflen,
+		       datagram_spec *ds) {
+	ike_header *ih = (ike_header *)buf;
+	zlog_category_t *zc = zlog_get_category("IKE");
+	if (buflen < sizeof(ike_header)) {
+		zlog_debug(zc,
+			   "datagram length (%ld) < sizeof of IKE header",
+			   buflen);
+		return 0;
+	}
+	if (buflen < ih->length) {
+		zlog_debug(zc,
+			   "datagram length (%ld) < length in IKE header (%ld)",
+			   buflen,
+			   (long)ih->length);
+		return 0;
+	}
+	zlog_info(zc,"IKE header OK");
+	return 1;
+}// approve_ike_header()
+
 void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	socket_msg sm = { .sockfd=fd };
 	ssize_t result;
@@ -43,6 +71,11 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 		if (500 == ds.lport) {
 			zlog_category_t *zc = zlog_get_category("IKE");
 			zlog_info(zc, "investigating IKE datagram");
+			if (!approve_ike_header(sm.buf,
+						result,
+						&ds)) {
+				zlog_info(zc, "IKE datagram not approved");
+			}
 		}
 		else if (4500 == ds.lport) {
 			if (memcmp(&spi,sm.buf,4)) {
@@ -52,6 +85,11 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 			else {
 				zlog_category_t *zc = zlog_get_category("IKE");
 				zlog_info(zc, "investigating NAT-T IKE datagram");
+				if (!approve_ike_header(sm.buf+4,
+							result-4,
+							&ds)) {
+					zlog_info(zc, "IKE datagram not approved");
+				}
 			}
 		}
 	}

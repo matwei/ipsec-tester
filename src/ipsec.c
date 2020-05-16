@@ -60,7 +60,7 @@ typedef struct __attribute__((__packed__)) {
  *            since a NAT-T IKE datagramm starts with a non-ESP marker
  *            that must be skipped when calling this function.
  *
- * @param buflen number of received octetts after buf
+ * @param buflen number of received octets after buf
  */
 int approve_ike_header(unsigned char *buf,
 		       ssize_t buflen) {

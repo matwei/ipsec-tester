@@ -20,6 +20,7 @@
 
 #include "ipsec.h"
 
+#include <stdbool.h>
 #include <string.h>
 
 typedef struct __attribute__((__packed__)) {
@@ -131,10 +132,41 @@ int ike_approve_header(unsigned char *buf,
 	return 1;
 }// ike_approve_header()
 
+/**
+ * Adjust the IKE header and send the datagram
+ *
+ * @param psm pointer to socket_msg used to send the datagram
+ *
+ * @param is_nat_t the datagram uses NAT-T
+ *
+ * @param length the length of the IKE payload excluding the IKE header
+ */
+ssize_t ike_send_datagram(socket_msg *psm,
+			  bool is_nat_t,
+			  ssize_t length) {
+	ike_header *ih;
+	ssize_t dglen = sizeof(ike_header) + length;
+
+	if (is_nat_t) {
+		dglen += 4;
+		ih = (ike_header *)(psm->buf+4);
+	}
+	else {
+		ih = (ike_header *)(psm->buf);
+	}
+	ih->length = htonl(sizeof(ike_header) + length);
+	if (0 == length) {
+		ih->npl = 0;
+	}
+	psm->msg.msg_iov[0].iov_len= dglen;
+	return socket_sendmsg(psm);
+}// ike_send_datagram()
+
 void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	socket_msg sm = { .sockfd=fd };
 	ssize_t result;
 	uint32_t spi = 0;
+	bool is_nat_t = false;
 
 	char mdc_buf[5];
 	unsigned int mdc_cnt = ++(is->mdc_counter);
@@ -158,9 +190,12 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 			}
 		}
 		else if (4500 == ds.lport) {
+			is_nat_t = true;
 			if (memcmp(&spi,sm.buf,4)) {
 				zlog_category_t *zc = zlog_get_category("ESP");
 				zlog_info(zc, "investigating NAT-T ESP datagram");
+				// we don't do anything yet
+				return;
 			}
 			else {
 				zlog_category_t *zc = zlog_get_category("IKE");
@@ -173,7 +208,6 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 		}
 	}
 
-	// for now send the datagramm back as echo
-	sm.msg.msg_iov[0].iov_len= result;
-	socket_sendmsg(&sm);
+	// for now send an empty IKE message back
+	ike_send_datagram(&sm, is_nat_t, 0);
 }// ipsec_handle_ike()

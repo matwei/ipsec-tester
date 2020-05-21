@@ -62,7 +62,7 @@ typedef struct __attribute__((__packed__)) {
  *
  * @param buflen number of received octets after buf
  */
-int approve_ike_header(unsigned char *buf,
+int ike_approve_header(unsigned char *buf,
 		       ssize_t buflen) {
 	ike_header *ih = (ike_header *)buf;
 	uint32_t ih_length = ntohl(ih->length);
@@ -129,7 +129,7 @@ int approve_ike_header(unsigned char *buf,
 	}
 	zlog_info(zc,"IKE header OK");
 	return 1;
-}// approve_ike_header()
+}// ike_approve_header()
 
 void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	socket_msg sm = { .sockfd=fd };
@@ -152,7 +152,7 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 		if (500 == ds.lport) {
 			zlog_category_t *zc = zlog_get_category("IKE");
 			zlog_info(zc, "investigating IKE datagram");
-			if (!approve_ike_header(sm.buf,
+			if (!ike_approve_header(sm.buf,
 						result)) {
 				zlog_info(zc, "IKE datagram not approved");
 			}
@@ -165,7 +165,7 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 			else {
 				zlog_category_t *zc = zlog_get_category("IKE");
 				zlog_info(zc, "investigating NAT-T IKE datagram");
-				if (!approve_ike_header(sm.buf+4,
+				if (!ike_approve_header(sm.buf+4,
 							result-4)) {
 					zlog_info(zc, "IKE datagram not approved");
 				}

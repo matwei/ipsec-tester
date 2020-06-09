@@ -153,6 +153,59 @@ const char * ike_exchange_name(uint8_t extype) {
 }
 
 /**
+ * Handle an IKE_SA_INIT exchange.
+ *
+ * @param fd the socket handle used to read the incoming datagram and
+ *           send the answer.
+ *
+ * @param is information about IPsec states.
+ *
+ * @param buf points at the beginning of the IKE header in the
+ *            datagramm.
+ *            This is not necessary the beginning of the UDP-Payload
+ *            since a NAT-T IKE datagramm starts with a non-ESP marker
+ *            that must be skipped when calling this function.
+ *
+ * @param buflen number of received octets after buf.
+ */
+void ike_hm_ike_sa_init(int fd, ipsec_s *is,
+                        unsigned char * buf, ssize_t buflen) {
+	ike_header *ih = (ike_header *)buf;
+	zlog_category_t *zc = zlog_get_category("IKE");
+	zlog_info(zc, "handling IKE_SA_INIT");
+	uint8_t npl = ih->npl;
+	unsigned char * const ep = buf + buflen;
+	unsigned char *bp = buf + sizeof(ike_header);
+	while (bp < ep) {
+		ike_gph * ngph = (ike_gph*)bp;
+		uint16_t pl_length = ntohs(ngph->pl_length);
+		if (bp + pl_length > ep) {
+			zlog_error(zc,
+			          "length of payload %hhu exceeds buffer",
+				  npl);
+			return;
+		}
+		zlog_debug(zc,
+			  "payload %hhu",
+			  npl);
+		npl = ngph->npl;
+		bp += pl_length;
+		if (NPL_NONE == npl && bp < ep) {
+			zlog_info(zc,
+			          "no next payload but %td bytes buffer left",
+				  ep - bp);
+			return;
+		}
+		else if (NPL_NONE != npl && bp >= ep) {
+			zlog_error(zc,
+			          "next payload %hhu but no bytes in buffer",
+				  npl);
+			return;
+		}
+	}
+}// ike_hm_ike_sa_init()
+
+/**
  * Handle an already approved IKE message
  *
  * @param fd the socket handle used to read the incoming datagram and
@@ -176,6 +229,8 @@ void ike_handle_message(int fd, ipsec_s *is,
 
 	switch (ih->extype) {
 		case EXCHANGE_IKE_SA_INIT:
+			ike_hm_ike_sa_init(fd, is, buf, buflen);
+			break;
 		case EXCHANGE_IKE_AUTH:
 		case EXCHANGE_CREATE_CHILD_SA:
 		case EXCHANGE_INFORMATIONAL:

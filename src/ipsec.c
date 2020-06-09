@@ -133,6 +133,60 @@ int ike_approve_header(unsigned char *buf,
 }// ike_approve_header()
 
 /**
+ * Return char array containing name of exchange type.
+ *
+ * @param extype binary IKE exchange type
+ */
+const char * ike_exchange_name(uint8_t extype) {
+	switch (extype) {
+		case EXCHANGE_IKE_SA_INIT:
+			return "IKE_SA_INIT";
+		case EXCHANGE_IKE_AUTH:
+			return "IKE_AUTH";
+		case EXCHANGE_CREATE_CHILD_SA:
+			return "CREATE_CHILD_SA";
+		case EXCHANGE_INFORMATIONAL:
+			return "INFORMATIONAL";
+		default:
+			return "UNKNOWN";
+	}
+}
+
+/**
+ * Handle an already approved IKE message
+ *
+ * @param fd the socket handle used to read the incoming datagram and
+ *           send the answer.
+ *
+ * @param is information about IPsec states.
+ *
+ * @param buf points at the beginning of the IKE header in the
+ *            datagramm.
+ *            This is not necessary the beginning of the UDP-Payload
+ *            since a NAT-T IKE datagramm starts with a non-ESP marker
+ *            that must be skipped when calling this function.
+ *
+ * @param buflen number of received octets after buf.
+ */
+void ike_handle_message(int fd, ipsec_s *is,
+                        unsigned char * buf, ssize_t buflen) {
+	ike_header *ih = (ike_header *)buf;
+	uint32_t ih_length = ntohl(ih->length);
+	zlog_category_t *zc = zlog_get_category("IKE");
+
+	switch (ih->extype) {
+		case EXCHANGE_IKE_SA_INIT:
+		case EXCHANGE_IKE_AUTH:
+		case EXCHANGE_CREATE_CHILD_SA:
+		case EXCHANGE_INFORMATIONAL:
+		default:
+			zlog_info(zc,
+				   "can't handle %s message yet",
+				   ike_exchange_name(ih->extype));
+	}
+}// ike_handle_message()
+
+/**
  * Adjust the IKE header and send the datagram
  *
  * @param psm pointer to socket_msg used to send the datagram
@@ -162,6 +216,14 @@ ssize_t ike_send_datagram(socket_msg *psm,
 	return socket_sendmsg(psm);
 }// ike_send_datagram()
 
+/**
+ * Handle the IPsec datagram
+ *
+ * @param fd the socket handle to read the incoming datagram and send
+ *           the answer
+ *
+ * @param is information about IPsec states
+ */
 void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	socket_msg sm = { .sockfd=fd };
 	ssize_t result;
@@ -188,6 +250,9 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 						result)) {
 				zlog_info(zc, "IKE datagram not approved");
 			}
+			else {
+				ike_handle_message(fd, is, sm.buf, result);
+			}
 		}
 		else if (4500 == ds.lport) {
 			is_nat_t = true;
@@ -203,6 +268,9 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 				if (!ike_approve_header(sm.buf+4,
 							result-4)) {
 					zlog_info(zc, "IKE datagram not approved");
+				}
+				else {
+					ike_handle_message(fd, is, sm.buf+4, result-4);
 				}
 			}
 		}

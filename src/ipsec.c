@@ -186,8 +186,8 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 			return;
 		}
 		zlog_debug(zc,
-			  "payload %hhu",
-			  npl);
+			  "payload %hhu, length: %hu",
+			  npl, pl_length);
 		npl = ngph->npl;
 		bp += pl_length;
 		if (NPL_NONE == npl && bp < ep) {

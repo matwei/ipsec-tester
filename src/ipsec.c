@@ -47,6 +47,7 @@ typedef struct __attribute__((__packed__)) {
 
 #define NPL_NONE 0
 #define NPL_SA 33
+#define NPL_N 41
 #define NPL_D 42
 #define NPL_V 43
 #define NPL_SK 46
@@ -115,6 +116,7 @@ int ike_approve_header(unsigned char *buf,
 				   "no next payload");
 			break;
 		case NPL_SA:
+		case NPL_N:
 		case NPL_D:
 		case NPL_V:
 		case NPL_SK:

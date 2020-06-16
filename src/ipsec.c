@@ -38,6 +38,16 @@ typedef struct __attribute__((__packed__)) {
 	uint16_t pl_length; 
 } ike_gph;	// generic paylod header
 
+typedef struct __attribute__((__packed__)) {
+	uint8_t last_substruct;
+	uint8_t reserved;
+	uint16_t proposal_length;
+	uint8_t proposal_num;
+	uint8_t protocol_id;
+	uint8_t spi_size;
+	uint8_t num_transforms;
+} ike_sa_proposal;
+
 #define MIN_IKE_DATAGRAM_LENGTH sizeof(ike_header)
 
 #define EXCHANGE_IKE_SA_INIT 34
@@ -135,6 +145,46 @@ int ike_approve_header(unsigned char *buf,
 }// ike_approve_header()
 
 /**
+ * Approve that the length of all proposals in an SA payload is
+ * consistent with the length of the SA payload.
+ *
+ * @param buf points at the beginning of the first proposal in the SA
+ *            payload.
+ *
+ * @param buflen length of the data part of the SA payload.
+ */
+int ike_approve_sa_payload(unsigned char *buf,
+                           ssize_t buflen) {
+	unsigned char *bp = buf;
+	const unsigned char *ep = buf+buflen;
+	zlog_category_t *zc = zlog_get_category("IKE");
+
+	while (ep > bp) {
+		ike_sa_proposal *prop = (ike_sa_proposal *)bp;
+		uint16_t prop_length = ntohs(prop->proposal_length);
+		if (ep == bp + prop_length) {
+			if (0 == prop->last_substruct) {
+				zlog_info(zc,"approved SA payload");
+				return 1;
+			}
+			else {
+				zlog_info(zc,"last substruct not set at end of SA payload");
+				return 0;
+			}
+		}
+		if (0 == prop->last_substruct) {
+			zlog_info(zc,"last substruct set but not end of SA payload");
+			return 0;
+		}
+		bp += prop_length;
+	}
+	zlog_info(zc,
+		  "proposal exceeds SA payload by %ld bytes",
+		  bp-ep);
+	return 0;
+}// ike_approve_sa_payload()
+
+/**
  * Return char array containing name of exchange type.
  *
  * @param extype binary IKE exchange type
@@ -190,6 +240,13 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 		zlog_debug(zc,
 			  "payload %hhu, length: %hu",
 			  npl, pl_length);
+		switch (npl) {
+			case 33: // Security Association (SA)
+				if (ike_approve_sa_payload(bp+sizeof(ike_gph),
+					                   pl_length-sizeof(ike_gph))) {
+					// parse SA payload
+				}
+		}
 		npl = ngph->npl;
 		bp += pl_length;
 		if (NPL_NONE == npl && bp < ep) {

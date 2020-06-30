@@ -452,7 +452,7 @@ int ike_parse_transforms(unsigned char *buf,
 		uint16_t tf_length = ntohs(tf->transform_length);
 		uint16_t tf_id = ntohs(tf->transform_id);
 		zlog_info(zc,
-		          " transform #%u [%hhu]: %s (%hhu): %s (%hu)",
+		          "  transform #%u [%hhu]: %s (%hhu): %s (%hu)",
 			  transform_number,
 			  tf_length,
 			  ike_transform_type_name(tf->transform_type),
@@ -466,7 +466,7 @@ int ike_parse_transforms(unsigned char *buf,
 			if ((attr_type & 0x8000)
 				&& 14 == (attr_type &0x7fff)) {
 				zlog_info(zc,
-					  "  keylength: %hu",
+					  "   keylength: %hu",
 					  ntohs(ap->length_value));
 			}
 		}
@@ -481,11 +481,14 @@ int ike_parse_sa_payload(unsigned char *buf,
 	unsigned char *bp = buf;
 	const unsigned char *ep = buf+buflen;
 	zlog_category_t *zc = zlog_get_category("IKE");
+	zlog_info(zc,
+	          "SA payload [%lu]",
+		  buflen);
 	while (ep > bp + sizeof(ike_sa_proposal)) {
 		ike_sa_proposal *prop = (ike_sa_proposal *)bp;
 		uint16_t prop_length = ntohs(prop->proposal_length);
 		zlog_info(zc,
-			  "proposal #%hhu [%hhu]: protocol: %s (%hhu), SPI size %hhu, %hhu transforms",
+			  " proposal #%hhu [%hhu]: protocol: %s (%hhu), SPI size %hhu, %hhu transforms",
 			  prop->proposal_num,
 			  prop_length,
 			  ike_protocol_id_name(prop->protocol_id),

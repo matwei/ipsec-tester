@@ -182,7 +182,7 @@ const char * ike_protocol_id_name(uint8_t protocol_id) {
 		case PROTOCOL_ID_ESP:
 			return "ESP";
 		default:
-			return "UNKNOWN";
+			return "unknown protocol ID";
 	}
 }// ike_protocol_id_name()
 
@@ -204,7 +204,7 @@ const char * ike_transform_type_name(uint8_t type) {
 		case TRANSFORM_ESN:
 			return "ESN";
 		default:
-			return "UNKNOWN";
+			return "unknown transform type";
 	}
 }// ike_transform_type_name()
 
@@ -212,6 +212,8 @@ const char * ike_transform_type_name(uint8_t type) {
  * Return char array containing name of ENCR transform ID.
  *
  * @param id - ID from transform
+ *
+ * see http://www.iana.org/assignments/ikev2-parameters/ikev2-parameters.xhtml
  */
 const char * ike_transform_encr_name(uint16_t id) {
 	switch (id) {
@@ -245,6 +247,146 @@ const char * ike_transform_encr_name(uint16_t id) {
 }// ike_transform_encr_name()
 
 /**
+ * Return char array containing name of PFR transform ID.
+ *
+ * @param id - ID from transform
+ *
+ * see http://www.iana.org/assignments/ikev2-parameters/ikev2-parameters.xhtml
+ */
+const char * ike_transform_prf_name(uint16_t id) {
+	switch (id) {
+		case 1:
+			return "HMAC_MD5";
+		case 2:
+			return "HMAC_SHA1";
+		case 3:
+			return "HMAC_TIGER";
+		case 4:
+			return "AES128_XCBC";
+		case 5:
+			return "HMAC_SHA2_256";
+		case 6:
+			return "HMAC_SHA2_384";
+		case 7:
+			return "HMAC_SHA2_512";
+		case 8:
+			return "AES128_CMAC";
+		case 9:
+			return "HMAC_STRIBOG_512";
+		default:
+			return "unknown PRF";
+	}
+}// ike_transform_prf_name()
+
+
+/**
+ * Return char array containing name of INTEG transform ID.
+ *
+ * @param id - ID from transform
+ *
+ * see http://www.iana.org/assignments/ikev2-parameters/ikev2-parameters.xhtml
+ */
+const char * ike_transform_integ_name(uint16_t id) {
+	switch (id) {
+		case 1:
+			return "HMAC_MD5_96";
+		case 2:
+			return "HMAC_SHA1_96";
+		case 3:
+			return "DES_MAC";
+		case 4:
+			return "KPDK_MD5";
+		case 5:
+			return "AES_XCBC_96";
+		case 6:
+			return "HMAC_MD5_128";
+		case 7:
+			return "HMAC_SHA1_160";
+		case 8:
+			return "AES_CMAC_96";
+		case 9:
+			return "AES_128_GMAC";
+		case 10:
+			return "AES_192_GMAC";
+		case 11:
+			return "AES_256_GMAC";
+		case 12:
+			return "HMAC_SHA2_256_128";
+		case 13:
+			return "HMAC_SHA2_384_192";
+		case 14:
+			return "HMAC_SHA2_512_256";
+		default:
+			return "unknown INTEG";
+	}
+}// ike_transform_integ_name()
+
+
+/**
+ * Return char array containing name of DH transform ID.
+ *
+ * @param id - ID from transform
+ *
+ * see http://www.iana.org/assignments/ikev2-parameters/ikev2-parameters.xhtml
+ */
+const char * ike_transform_dh_name(uint16_t id) {
+	switch (id) {
+		case 0:
+			return "none";
+		case 1:
+			return "768-bit MODP Group";
+		case 2:
+			return "1024-bit MODP Group";
+		case 5:
+			return "1536-bit MODP Group";
+		case 14:
+			return "2048-bit MODP Group";
+		case 15:
+			return "3072-bit MODP Group";
+		case 16:
+			return "4096-bit MODP Group";
+		case 17:
+			return "6144-bit MODP Group";
+		case 18:
+			return "8192-bit MODP Group";
+		case 19:
+			return "256-bit random ECP Group";
+		case 20:
+			return "384-bit random ECP Group";
+		case 21:
+			return "521-bit random ECP Group";
+		case 22:
+			return "1024-bit MODP Group with 160-bit Prime Order Subgroup";
+		case 23:
+			return "2048-bit MODP Group with 224-bit Prime Order Subgroup";
+		case 24:
+			return "2048-bit MODP Group with 256-bit Prime Order Subgroup";
+		case 25:
+			return "192-bit random ECP Group";
+		case 26:
+			return "224-bit random ECP Group";
+		case 27:
+			return "brainpoolP224r1";
+		case 28:
+			return "brainpoolP256r1";
+		case 29:
+			return "brainpoolP384r1";
+		case 30:
+			return "brainpoolP512r1";
+		case 31:
+			return "Curve25519";
+		case 32:
+			return "Curve448";
+		case 33:
+			return "GOST3410_2012_256";
+		case 34:
+			return "GOST3410_2012_512";
+		default:
+			return "unknown DH group";
+	}
+}// ike_transform_dh_name()
+
+/**
  * Return char array containing name of ESN ID in transform in proposal.
  *
  * @param id - ID from transform
@@ -272,9 +414,13 @@ const char * ike_transform_id_name(uint8_t transform_type, uint16_t id) {
 		case TRANSFORM_ENCR:
 			return ike_transform_encr_name(id);
 		case TRANSFORM_PRF:
+			return ike_transform_prf_name(id);
 		case TRANSFORM_INTEG:
+			return ike_transform_integ_name(id);
 		case TRANSFORM_DH:
+			return ike_transform_dh_name(id);
 		case TRANSFORM_ESN:
+			return ike_transform_esn_name(id);
 		default:
 			return "unknown transform type";
 	}
@@ -306,8 +452,9 @@ int ike_parse_transforms(unsigned char *buf,
 		uint16_t tf_length = ntohs(tf->transform_length);
 		uint16_t tf_id = ntohs(tf->transform_id);
 		zlog_info(zc,
-		          " transform %u: %s (%hhu): %s (%hu)",
+		          " transform #%u [%hhu]: %s (%hhu): %s (%hu)",
 			  transform_number,
+			  tf_length,
 			  ike_transform_type_name(tf->transform_type),
 			  tf->transform_type,
 			  ike_transform_id_name(tf->transform_type, tf_id),
@@ -338,8 +485,9 @@ int ike_parse_sa_payload(unsigned char *buf,
 		ike_sa_proposal *prop = (ike_sa_proposal *)bp;
 		uint16_t prop_length = ntohs(prop->proposal_length);
 		zlog_info(zc,
-			  "proposal %hhu: protocol: %s (%hhu), SPI size %hhu, %hhu transforms",
+			  "proposal #%hhu [%hhu]: protocol: %s (%hhu), SPI size %hhu, %hhu transforms",
 			  prop->proposal_num,
+			  prop_length,
 			  ike_protocol_id_name(prop->protocol_id),
 			  prop->protocol_id,
 			  prop->spi_size,

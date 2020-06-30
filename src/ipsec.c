@@ -48,12 +48,36 @@ typedef struct __attribute__((__packed__)) {
 	uint8_t num_transforms;
 } ike_sa_proposal;
 
+typedef struct __attribute__((__packed__)) {
+	uint8_t last_substruct;
+	uint8_t reserved1;
+	uint16_t transform_length;
+	uint8_t transform_type;
+	uint8_t reserved2;
+	uint16_t transform_id;
+} ike_sa_transform;
+
+typedef struct __attribute__((__packed__)) {
+	uint16_t format_type;
+	uint16_t length_value;
+} ike_sa_tf_attribute;
+
 #define MIN_IKE_DATAGRAM_LENGTH sizeof(ike_header)
 
 #define EXCHANGE_IKE_SA_INIT 34
 #define EXCHANGE_IKE_AUTH 35
 #define EXCHANGE_CREATE_CHILD_SA 36
 #define EXCHANGE_INFORMATIONAL 37
+
+#define PROTOCOL_ID_IKE 1
+#define PROTOCOL_ID_AH 2
+#define PROTOCOL_ID_ESP 3
+
+#define TRANSFORM_ENCR 1
+#define TRANSFORM_PRF 2
+#define TRANSFORM_INTEG 3
+#define TRANSFORM_DH 4
+#define TRANSFORM_ESN 5
 
 #define NPL_NONE 0
 #define NPL_SA 33
@@ -145,26 +169,189 @@ int ike_approve_header(unsigned char *buf,
 }// ike_approve_header()
 
 /**
- * Approve that the length of all proposals in an SA payload is
- * consistent with the length of the SA payload.
+ * Return char array containing name of protocol ID in proposal.
  *
- * @param buf points at the beginning of the first proposal in the SA
- *            payload.
- *
- * @param buflen length of the data part of the SA payload.
+ * @param protocol_id protocol ID in proposal from SA payload
  */
-int ike_approve_sa_payload(unsigned char *buf,
-                           ssize_t buflen) {
+const char * ike_protocol_id_name(uint8_t protocol_id) {
+	switch (protocol_id) {
+		case PROTOCOL_ID_IKE:
+			return "IKE";
+		case PROTOCOL_ID_AH:
+			return "AH";
+		case PROTOCOL_ID_ESP:
+			return "ESP";
+		default:
+			return "UNKNOWN";
+	}
+}// ike_protocol_id_name()
+
+/**
+ * Return char array containing name of transform type in proposal.
+ *
+ * @param type - transform type from proposal
+ */
+const char * ike_transform_type_name(uint8_t type) {
+	switch (type) {
+		case TRANSFORM_ENCR:
+			return "ENCR";
+		case TRANSFORM_PRF:
+			return "PRF";
+		case TRANSFORM_INTEG:
+			return "INTEG";
+		case TRANSFORM_DH:
+			return "DH";
+		case TRANSFORM_ESN:
+			return "ESN";
+		default:
+			return "UNKNOWN";
+	}
+}// ike_transform_type_name()
+
+/**
+ * Return char array containing name of ENCR transform ID.
+ *
+ * @param id - ID from transform
+ */
+const char * ike_transform_encr_name(uint16_t id) {
+	switch (id) {
+		case 1:
+			return "DES_IV64";
+		case 2:
+			return "DES";
+		case 3:
+			return "3DES";
+		case 4:
+			return "RC5";
+		case 5:
+			return "IDEA";
+		case 6:
+			return "CAST";
+		case 7:
+			return "BLOWFISH";
+		case 8:
+			return "3IDEA";
+		case 9:
+			return "DES_IV32";
+		case 11:
+			return "NULL";
+		case 12:
+			return "AES_CBC";
+		case 13:
+			return "AES_CTR";
+		default:
+			return "unknown ENCR";
+	}
+}// ike_transform_encr_name()
+
+/**
+ * Return char array containing name of ESN ID in transform in proposal.
+ *
+ * @param id - ID from transform
+ */
+const char * ike_transform_esn_name(uint16_t id) {
+	switch (id) {
+		case 0:
+			return "no ESN";
+		case 1:
+			return "ESN";
+		default:
+			return "unknown ESN";
+	}
+}// ike_transform_esn_name()
+
+/**
+ * Return char array containing name of protocol ID in proposal.
+ *
+ * @param transform_type - type of transform (ENCR, PRF, INTEG, DH, ESN)
+ *
+ * @param id - transform ID
+ */
+const char * ike_transform_id_name(uint8_t transform_type, uint16_t id) {
+	switch (transform_type) {
+		case TRANSFORM_ENCR:
+			return ike_transform_encr_name(id);
+		case TRANSFORM_PRF:
+		case TRANSFORM_INTEG:
+		case TRANSFORM_DH:
+		case TRANSFORM_ESN:
+		default:
+			return "unknown transform type";
+	}
+}// ike_transform_id_name()
+
+/**
+ * parse transforms in proposals in SA payload
+ *
+ * @param buf - buffer containing transforms
+ *
+ * @param buflen - length of buffer
+ *
+ * @num_transforms - number of expected transforms
+ */
+int ike_parse_transforms(unsigned char *buf,
+                         ssize_t buflen,
+		         int num_transforms) {
 	unsigned char *bp = buf;
 	const unsigned char *ep = buf+buflen;
 	zlog_category_t *zc = zlog_get_category("IKE");
+	int transform_number = 1;
+	while (transform_number <= num_transforms) {
+		if (ep < bp + sizeof(ike_sa_transform)) {
+			zlog_error(zc, "buffer to short for transform %u",
+			           transform_number);
+			return 0;
+		}
+		ike_sa_transform *tf = (ike_sa_transform *)bp;
+		uint16_t tf_length = ntohs(tf->transform_length);
+		uint16_t tf_id = ntohs(tf->transform_id);
+		zlog_info(zc,
+		          " transform %u: %s (%hhu): %s (%hu)",
+			  transform_number,
+			  ike_transform_type_name(tf->transform_type),
+			  tf->transform_type,
+			  ike_transform_id_name(tf->transform_type, tf_id),
+			  tf_id);
+		if (TRANSFORM_ENCR == tf->transform_type
+			&& sizeof(ike_sa_transform) < tf_length) {
+			ike_sa_tf_attribute *ap = (ike_sa_tf_attribute *)(bp + sizeof(ike_sa_transform));
+			uint16_t attr_type = ntohs(ap->format_type);
+			if ((attr_type & 0x8000)
+				&& 14 == (attr_type &0x7fff)) {
+				zlog_info(zc,
+					  "  keylength: %hu",
+					  ntohs(ap->length_value));
+			}
+		}
+		bp += tf_length;
+		++transform_number;
+	}
+	return 1;
+}// ike_parse_transforms()
 
-	while (ep > bp) {
+int ike_parse_sa_payload(unsigned char *buf,
+                          ssize_t buflen) {
+	unsigned char *bp = buf;
+	const unsigned char *ep = buf+buflen;
+	zlog_category_t *zc = zlog_get_category("IKE");
+	while (ep > bp + sizeof(ike_sa_proposal)) {
 		ike_sa_proposal *prop = (ike_sa_proposal *)bp;
 		uint16_t prop_length = ntohs(prop->proposal_length);
+		zlog_info(zc,
+			  "proposal %hhu: protocol: %s (%hhu), SPI size %hhu, %hhu transforms",
+			  prop->proposal_num,
+			  ike_protocol_id_name(prop->protocol_id),
+			  prop->protocol_id,
+			  prop->spi_size,
+			  prop->num_transforms);
+		if (!ike_parse_transforms(bp + sizeof(ike_sa_proposal),
+			                  prop_length - sizeof(ike_sa_proposal),
+					  prop->num_transforms)) {
+			zlog_error(zc, "problem parsing proposal %hhu", prop->proposal_num);
+			return 0;
+		}
 		if (ep == bp + prop_length) {
 			if (0 == prop->last_substruct) {
-				zlog_info(zc,"approved SA payload");
 				return 1;
 			}
 			else {
@@ -182,7 +369,7 @@ int ike_approve_sa_payload(unsigned char *buf,
 		  "proposal exceeds SA payload by %ld bytes",
 		  bp-ep);
 	return 0;
-}// ike_approve_sa_payload()
+}// ike_parse_sa_payload()
 
 /**
  * Return char array containing name of exchange type.
@@ -202,7 +389,7 @@ const char * ike_exchange_name(uint8_t extype) {
 		default:
 			return "UNKNOWN";
 	}
-}
+}// ike_exchange_name()
 
 /**
  * Handle an IKE_SA_INIT exchange.
@@ -242,10 +429,16 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 			  npl, pl_length);
 		switch (npl) {
 			case 33: // Security Association (SA)
-				if (ike_approve_sa_payload(bp+sizeof(ike_gph),
-					                   pl_length-sizeof(ike_gph))) {
-					// parse SA payload
+				if (ike_parse_sa_payload(bp+sizeof(ike_gph),
+					                 pl_length-sizeof(ike_gph))) {
+					// TODO: use SA payload
 				}
+				break;
+				// TODO: parse other payloads
+			default:
+				zlog_info(zc,
+					  "don't know how to handle payload %hhu",
+					  npl);
 		}
 		npl = ngph->npl;
 		bp += pl_length;

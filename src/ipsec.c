@@ -62,6 +62,16 @@ typedef struct __attribute__((__packed__)) {
 	uint16_t length_value;
 } ike_sa_tf_attribute;
 
+typedef struct __attribute__((__packed__)) {
+	ike_gph gph;
+	uint16_t dh_group_num;
+	uint16_t reserved;
+} ike_ke_pl;	// key exchange payload
+
+uint16_t ike_ke_dh_group_num(ike_ke_pl *);
+uint16_t ike_ke_data_length(ike_ke_pl *);
+uint8_t * ike_ke_data(ike_ke_pl *);
+
 #define MIN_IKE_DATAGRAM_LENGTH sizeof(ike_header)
 
 #define EXCHANGE_IKE_SA_INIT 34
@@ -523,6 +533,73 @@ int ike_parse_sa_payload(unsigned char *buf,
 }// ike_parse_sa_payload()
 
 /**
+ * Return DH group number
+ *
+ * @param ke key exchange payload
+ */
+uint16_t ike_ke_dh_group_num(ike_ke_pl *kepl) {
+	return ntohs(kepl->dh_group_num);
+}// ike_ke_dh_group_num()
+
+/**
+ * Get size of key exchange data
+ *
+ * @param kepl pointer to KE payload
+ *
+ * return size of key exchange data or 0 if KE payload is too small
+ */
+uint16_t ike_ke_data_length(ike_ke_pl *kepl) {
+	uint16_t pl_length = ntohs(kepl->gph.pl_length);
+	if (pl_length > sizeof(kepl)) {
+		return (pl_length - sizeof(kepl));
+	}
+	return 0;
+}// ike_ke_data_length()
+
+/**
+ * Get key exchange data
+ *
+ * @param kepl pointer ot KE payload
+ *
+ * @return pointer to buffer or NULL if size of KE payload is too small
+ */
+uint8_t * ike_ke_data(ike_ke_pl *kepl) {
+	uint16_t pl_length = ntohs(kepl->gph.pl_length);
+	if (pl_length > sizeof(kepl)) {
+		uint8_t * data = (uint8_t *)kepl;
+		return (data + sizeof(kepl));
+	}
+	return NULL;
+}// ike_ke_data()
+
+/**
+ * Parse Key Exchange Payload
+ *
+ * @param buf a buffer containing the payload
+ *
+ * @param buflen the length of the buffer
+ *
+ * @return 1 for success, 0 for failure
+ */
+int ike_parse_ke_payload(unsigned char *buf,
+                          ssize_t buflen) {
+	ike_ke_pl * kepl = (ike_ke_pl*)buf;
+	zlog_category_t *zc = zlog_get_category("IKE");
+	zlog_info(zc,
+	          "KE payload [%lu]",
+		  buflen);
+	if (buflen <= sizeof(ike_ke_pl)) {
+		zlog_info(zc, "buffer too small for Key Exchange Payload");
+		return 0;
+	}
+	zlog_info(zc,
+	          " DH group %hu, %hu byte key exchange data",
+		  ike_ke_dh_group_num(kepl),
+		  ike_ke_data_length(kepl));
+	return 1;
+}// ike_parse_ke_payload()
+
+/**
  * Return char array containing name of exchange type.
  *
  * @param extype binary IKE exchange type
@@ -583,6 +660,11 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 				if (ike_parse_sa_payload(bp+sizeof(ike_gph),
 					                 pl_length-sizeof(ike_gph))) {
 					// TODO: use SA payload
+				}
+				break;
+			case 34: // Key Exchange
+				if (ike_parse_ke_payload(bp, pl_length)) {
+					// TODO: use KE payload
 				}
 				break;
 				// TODO: parse other payloads

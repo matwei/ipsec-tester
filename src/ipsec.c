@@ -600,6 +600,39 @@ int ike_parse_ke_payload(unsigned char *buf,
 }// ike_parse_ke_payload()
 
 /**
+ * Parse Nonce Payload
+ *
+ * @param buf a buffer containing the payload
+ *
+ * @param buflen the length of the buffer
+ *
+ * @return 1 for success, 0 for failure
+ */
+int ike_parse_nonce_payload(unsigned char *buf,
+                          ssize_t buflen) {
+	ike_gph * nph = (ike_gph *)buf;
+	uint16_t nonce_len = ntohs(nph->pl_length) - sizeof(ike_gph);
+	zlog_category_t *zc = zlog_get_category("IKE");
+	zlog_info(zc,
+	          "Nonce payload [%lu]",
+		  buflen);
+	if (buflen < 16 + sizeof(ike_gph)) {
+		zlog_info(zc, "buffer too small for nonce payload");
+		return 0;
+	}
+	if (buflen < nonce_len + sizeof(ike_gph)) {
+		zlog_info(zc,
+		         "buffer too small for nonce payload of %hu bytes",
+		         nonce_len);
+		return 0;
+	}
+	zlog_info(zc,
+	          " %hu byte nonce data",
+		  nonce_len);
+	return 1;
+}// ike_parse_nonce_payload()
+
+/**
  * Return char array containing name of exchange type.
  *
  * @param extype binary IKE exchange type
@@ -664,6 +697,11 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 				break;
 			case 34: // Key Exchange
 				if (ike_parse_ke_payload(bp, pl_length)) {
+					// TODO: use KE payload
+				}
+				break;
+			case 40: // Nonce
+				if (ike_parse_nonce_payload(bp, pl_length)) {
 					// TODO: use KE payload
 				}
 				break;

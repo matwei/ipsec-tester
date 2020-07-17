@@ -72,12 +72,62 @@ uint16_t ike_ke_dh_group_num(ike_ke_pl *);
 uint16_t ike_ke_data_length(ike_ke_pl *);
 uint8_t * ike_ke_data(ike_ke_pl *);
 
+typedef struct __attribute__((__packed__)) {
+	ike_gph gph;
+	uint8_t protocol_id;
+	uint8_t spi_size;
+	uint16_t message_type;
+} ike_notify_pl;	// notify payload
+
+uint16_t ike_notify_message_type(ike_notify_pl *);
+const char * ike_notify_message_type_name(ike_notify_pl *);
+uint64_t ike_notify_spi(ike_notify_pl *);
+uint8_t * ike_notify_data(ike_notify_pl *);
+
+
 #define MIN_IKE_DATAGRAM_LENGTH sizeof(ike_header)
 
 #define EXCHANGE_IKE_SA_INIT 34
 #define EXCHANGE_IKE_AUTH 35
 #define EXCHANGE_CREATE_CHILD_SA 36
 #define EXCHANGE_INFORMATIONAL 37
+
+#define NOTIFY_MT_UNSUPPORTED_CRITICAL_PAYLOAD 1
+#define NOTIFY_MT_INVALID_IKE_SPI 4
+#define NOTIFY_MT_INVALID_MAJOR_VERSION 5
+#define NOTIFY_MT_INVALID_SYNTAX 7
+#define NOTIFY_MT_INVALID_MESSAGE_ID 9
+#define NOTIFY_MT_INVALID_SPI 11
+#define NOTIFY_MT_NO_PROPOSAL_CHOSEN 14
+#define NOTIFY_MT_INVALID_KE_PAYLOAD 17
+#define NOTIFY_MT_AUTHENTICATION_FAILED 24
+#define NOTIFY_MT_SINGLE_PAIR_REQUIRED 34
+#define NOTIFY_MT_NO_ADDITIONAL_SAS 35
+#define NOTIFY_MT_INTERNAL_ADDRESS_FAILURE 36
+#define NOTIFY_MT_FAILED_CP_REQUIRED 37
+#define NOTIFY_MT_TS_UNACCEPTABLE 38
+#define NOTIFY_MT_INVALID_SELECTORS 39
+#define NOTIFY_MT_TEMPORARY_FAILURE 43
+#define NOTIFY_MT_CHILD_SA_NOT_FOUND 44
+
+#define NOTIFY_MT_INITIAL_CONTACT 16384
+#define NOTIFY_MT_SET_WINDOW_SIZE 16385
+#define NOTIFY_MT_ADDITIONAL_TS_POSSIBLE 16386
+#define NOTIFY_MT_IPCOMP_SUPPORTED 16387
+#define NOTIFY_MT_NAT_DETECTION_SOURCE_IP 16388
+#define NOTIFY_MT_NAT_DETECTION_DESTINATION_IP 16389
+#define NOTIFY_MT_COOKIE 16390
+#define NOTIFY_MT_USE_TRANSPORT_MODE 16391
+#define NOTIFY_MT_HTTP_CERT_LOOKUP_SUPPORTED 16392
+#define NOTIFY_MT_REKEY_SA 16393
+#define NOTIFY_MT_ESP_TFC_PADDING_NOT_SUPPORTED 16394
+#define NOTIFY_MT_NON_FIRST_FRAGMENTS_ALSO 16395
+// RFC5685
+#define NOTIFY_MT_REDIRECT_SUPPORTED 16406
+// RFC7383
+#define NOTIFY_MT_IKEV2_FRAGMENTATION_SUPPORTED 16430
+// RFC7427
+#define NOTIFY_MT_SIGNATURE_HASH_ALGORITHMS 16431
 
 #define PROTOCOL_ID_IKE 1
 #define PROTOCOL_ID_AH 2
@@ -632,6 +682,117 @@ int ike_parse_nonce_payload(unsigned char *buf,
 	return 1;
 }// ike_parse_nonce_payload()
 
+uint16_t ike_notify_message_type(ike_notify_pl * npl) {
+	return ntohs(npl->message_type);
+}// ike_notify_message_type()
+
+const char * ike_notify_message_type_name(ike_notify_pl * npl) {
+	uint16_t msgtype = ike_notify_message_type(npl);
+	switch (msgtype) {
+		case NOTIFY_MT_UNSUPPORTED_CRITICAL_PAYLOAD:
+			return "UNSUPPORTED_CRITICAL_PAYLOAD";
+		case NOTIFY_MT_INVALID_IKE_SPI:
+			return "INVALID_IKE_SPI";
+		case NOTIFY_MT_INVALID_MAJOR_VERSION:
+			return "INVALID_MAJOR_VERSION";
+		case NOTIFY_MT_INVALID_SYNTAX:
+			return "INVALID_SYNTAX";
+		case NOTIFY_MT_INVALID_MESSAGE_ID:
+			return "INVALID_MESSAGE_ID";
+		case NOTIFY_MT_INVALID_SPI:
+			return "INVALID_SPI";
+		case NOTIFY_MT_NO_PROPOSAL_CHOSEN:
+			return "NO_PROPOSAL_CHOSEN";
+		case NOTIFY_MT_INVALID_KE_PAYLOAD:
+			return "INVALID_KE_PAYLOAD";
+		case NOTIFY_MT_AUTHENTICATION_FAILED:
+			return "AUTHENTICATION_FAILED";
+		case NOTIFY_MT_SINGLE_PAIR_REQUIRED:
+			return "SINGLE_PAIR_REQUIRED";
+		case NOTIFY_MT_NO_ADDITIONAL_SAS:
+			return "NO_ADDITIONAL_SAS";
+		case NOTIFY_MT_INTERNAL_ADDRESS_FAILURE:
+			return "INTERNAL_ADDRESS_FAILURE";
+		case NOTIFY_MT_FAILED_CP_REQUIRED:
+			return "FAILED_CP_REQUIRED";
+		case NOTIFY_MT_TS_UNACCEPTABLE:
+			return "TS_UNACCEPTABLE";
+		case NOTIFY_MT_INVALID_SELECTORS:
+			return "INVALID_SELECTORS";
+		case NOTIFY_MT_TEMPORARY_FAILURE:
+			return "TEMPORARY_FAILURE";
+		case NOTIFY_MT_CHILD_SA_NOT_FOUND:
+			return "CHILD_SA_NOT_FOUND";
+		case NOTIFY_MT_INITIAL_CONTACT:
+			return "INITIAL_CONTACT";
+		case NOTIFY_MT_SET_WINDOW_SIZE:
+			return "SET_WINDOW_SIZE";
+		case NOTIFY_MT_ADDITIONAL_TS_POSSIBLE:
+			return "ADDITIONAL_TS_POSSIBLE";
+		case NOTIFY_MT_IPCOMP_SUPPORTED:
+			return "IPCOMP_SUPPORTED";
+		case NOTIFY_MT_NAT_DETECTION_SOURCE_IP:
+			return "NAT_DETECTION_SOURCE_IP";
+		case NOTIFY_MT_NAT_DETECTION_DESTINATION_IP:
+			return "NAT_DETECTION_DESTINATION_IP";
+		case NOTIFY_MT_COOKIE:
+			return "COOKIE";
+		case NOTIFY_MT_USE_TRANSPORT_MODE:
+			return "USE_TRANSPORT_MODE";
+		case NOTIFY_MT_HTTP_CERT_LOOKUP_SUPPORTED:
+			return "HTTP_CERT_LOOKUP_SUPPORTED";
+		case NOTIFY_MT_REKEY_SA:
+			return "REKEY_SA";
+		case NOTIFY_MT_ESP_TFC_PADDING_NOT_SUPPORTED:
+			return "ESP_TFC_PADDING_NOT_SUPPORTED";
+		case NOTIFY_MT_NON_FIRST_FRAGMENTS_ALSO:
+			return "NON_FIRST_FRAGMENTS_ALSO";
+		case NOTIFY_MT_REDIRECT_SUPPORTED:
+			return "REDIRECT_SUPPORTED";
+		case NOTIFY_MT_IKEV2_FRAGMENTATION_SUPPORTED:
+			return "IKEV2_FRAGMENTATION_SUPPORTED";
+		case NOTIFY_MT_SIGNATURE_HASH_ALGORITHMS:
+			return "SIGNATURE_HASH_ALGORITHMS";
+		default:
+			return "UNKNOWN_MESSAGE_TYPE";
+	}
+}// ike_notify_message_type_name()
+
+/**
+ * Parse Notify Payload
+ *
+ * @param buf a buffer containing the payload
+ *
+ * @param buflen the length of the buffer
+ *
+ * @return 1 for success, 0 for failure
+ */
+int ike_parse_notify_payload(unsigned char *buf,
+                          ssize_t buflen) {
+	ike_notify_pl * npl = (ike_notify_pl *)buf;
+	uint16_t notify_len = ntohs(npl->gph.pl_length);
+	zlog_category_t *zc = zlog_get_category("IKE");
+	zlog_info(zc,
+	          "Notify payload [%lu]",
+		  buflen);
+	if (buflen < sizeof(ike_notify_pl)) {
+		zlog_info(zc, "buffer too small for notify payload");
+		return 0;
+	}
+	if (buflen < notify_len) {
+		zlog_info(zc,
+		         "buffer too small for notify payload of %hu bytes",
+		         notify_len);
+		return 0;
+	}
+	zlog_info(zc,
+	          " notify %s (%hu) with %hu byte length",
+		  ike_notify_message_type_name(npl),
+		  ike_notify_message_type(npl),
+		  notify_len);
+	return 1;
+}// ike_parse_notify_payload()
+
 /**
  * Return char array containing name of exchange type.
  *
@@ -702,6 +863,11 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 				break;
 			case 40: // Nonce
 				if (ike_parse_nonce_payload(bp, pl_length)) {
+					// TODO: use KE payload
+				}
+				break;
+			case 41: // Nonce
+				if (ike_parse_notify_payload(bp, pl_length)) {
 					// TODO: use KE payload
 				}
 				break;

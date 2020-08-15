@@ -4,8 +4,9 @@ bin_PROGRAMS = itip
 itip_SOURCES = src/itip.c \
 	       src/sockets.c src/sockets.h \
 	       src/ipsec.c src/ipsec.h
-itip_LDADD = -lzlog
+itip_LDADD = -lzlog $(LIBGCRYPT_LIBS) -lgpg-error
 
+AM_CPPFLAGS = $(LIBGCRYPT_CFLAGS)
 AM_LDFLAGS =
 
 dist_doc_DATA = README.md \

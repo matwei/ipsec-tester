@@ -20,6 +20,7 @@
 
 #include "ipsec.h"
 
+#include <gcrypt.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -682,6 +683,50 @@ int ike_parse_nonce_payload(unsigned char *buf,
 	return 1;
 }// ike_parse_nonce_payload()
 
+/**
+ * Address is translated
+ *
+ * @param spis buffer chunk containing SPIs of the datagram
+ *
+ * @param address buffer chunk containing source or destination address
+ *
+ * @param port buffer chunk containing source or destination port
+ *
+ * @param sha1 buffer chunk containing SHA1 digest sent by peer
+ */
+int ike_notify_address_translated(unsigned char * spis_ptr,
+                                  chunk_t address,
+				  unsigned char * port_ptr,
+				  unsigned char * sha1_ptr) {
+	zlog_category_t *zc = zlog_get_category("CRYPT");
+	gcry_error_t gerr;
+	gcry_md_hd_t hd;
+	int algo = GCRY_MD_SHA1;
+	int result = 0;
+	chunk_t spis = { .ptr = spis_ptr, .len = 16 };
+	chunk_t port = { .ptr = port_ptr, .len = 2 };
+	chunk_t sha1 = { .ptr = sha1_ptr, .len = 20 };
+
+	gerr = gcry_md_open(&hd, algo, 0);
+	if (gerr) {
+		zlog_error(zc,
+		          "algo %d, gcry_md_open failed: %s",
+			  algo,
+			  gpg_strerror(gerr));
+		exit(1);
+	}
+	gcry_md_write(hd, spis.ptr, spis.len);
+	gcry_md_write(hd, address.ptr, address.len);
+	gcry_md_write(hd, port.ptr, port.len);
+	unsigned char *hash = gcry_md_read(hd, algo);
+	if (memcmp(hash,sha1.ptr,sha1.len)) {
+		zlog_debug(zc, "hash digests differ");
+		result = 1;
+	}
+	gcry_md_close(hd);
+	return result;
+}// ike_notify_address_translated()
+
 uint16_t ike_notify_message_type(ike_notify_pl * npl) {
 	return ntohs(npl->message_type);
 }// ike_notify_message_type()
@@ -768,7 +813,8 @@ const char * ike_notify_message_type_name(ike_notify_pl * npl) {
  * @return 1 for success, 0 for failure
  */
 int ike_parse_notify_payload(unsigned char *buf,
-                          ssize_t buflen) {
+                            ssize_t buflen,
+			    socket_msg *sm) {
 	ike_notify_pl * npl = (ike_notify_pl *)buf;
 	uint16_t notify_len = ntohs(npl->gph.pl_length);
 	zlog_category_t *zc = zlog_get_category("IKE");
@@ -785,11 +831,36 @@ int ike_parse_notify_payload(unsigned char *buf,
 		         notify_len);
 		return 0;
 	}
+	uint16_t nmt = ike_notify_message_type(npl);
 	zlog_info(zc,
 	          " notify %s (%hu) with %hu byte length",
 		  ike_notify_message_type_name(npl),
-		  ike_notify_message_type(npl),
+		  nmt,
 		  notify_len);
+	if (NOTIFY_MT_NAT_DETECTION_SOURCE_IP == nmt) {
+		zlog_info(zc,"NAT detection saddr (%hu)", nmt);
+		if (ike_notify_address_translated(sm->buf,
+			                          sm->ds->raddress,
+						  (unsigned char *)&sm->ds->rportn,
+						  buf+sizeof(ike_notify_pl))) {
+			zlog_info(zc," NAT detected");
+		}
+		else {
+			zlog_info(zc," no NAT detected");
+		}
+	}
+	if (NOTIFY_MT_NAT_DETECTION_DESTINATION_IP == nmt) {
+		zlog_info(zc,"NAT detection daddr (%hu)", nmt);
+		if (ike_notify_address_translated(sm->buf,
+			                          sm->ds->laddress,
+						  (unsigned char *)&sm->ds->lportn,
+						  buf+sizeof(ike_notify_pl))) {
+			zlog_info(zc," NAT detected");
+		}
+		else {
+			zlog_info(zc," no NAT detected");
+		}
+	}
 	return 1;
 }// ike_parse_notify_payload()
 
@@ -816,8 +887,7 @@ const char * ike_exchange_name(uint8_t extype) {
 /**
  * Handle an IKE_SA_INIT exchange.
  *
- * @param fd the socket handle used to read the incoming datagram and
- *           send the answer.
+ * @param sm the socket_msg connected to the incoming datagram.
  *
  * @param is information about IPsec states.
  *
@@ -829,8 +899,9 @@ const char * ike_exchange_name(uint8_t extype) {
  *
  * @param buflen number of received octets after buf.
  */
-void ike_hm_ike_sa_init(int fd, ipsec_s *is,
+void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
                         unsigned char * buf, ssize_t buflen) {
+	int fd = sm->sockfd;
 	ike_header *ih = (ike_header *)buf;
 	zlog_category_t *zc = zlog_get_category("IKE");
 	zlog_info(zc, "handling IKE_SA_INIT");
@@ -867,7 +938,7 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 				}
 				break;
 			case 41: // Nonce
-				if (ike_parse_notify_payload(bp, pl_length)) {
+				if (ike_parse_notify_payload(bp, pl_length, sm)) {
 					// TODO: use KE payload
 				}
 				break;
@@ -897,8 +968,7 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
 /**
  * Handle an already approved IKE message
  *
- * @param fd the socket handle used to read the incoming datagram and
- *           send the answer.
+ * @param fd the socket_msg connected the incoming datagram
  *
  * @param is information about IPsec states.
  *
@@ -910,15 +980,16 @@ void ike_hm_ike_sa_init(int fd, ipsec_s *is,
  *
  * @param buflen number of received octets after buf.
  */
-void ike_handle_message(int fd, ipsec_s *is,
+void ike_handle_message(socket_msg *sm, ipsec_s *is,
                         unsigned char * buf, ssize_t buflen) {
+	int fd = sm->sockfd;
 	ike_header *ih = (ike_header *)buf;
 	uint32_t ih_length = ntohl(ih->length);
 	zlog_category_t *zc = zlog_get_category("IKE");
 
 	switch (ih->extype) {
 		case EXCHANGE_IKE_SA_INIT:
-			ike_hm_ike_sa_init(fd, is, buf, buflen);
+			ike_hm_ike_sa_init(sm, is, buf, buflen);
 			break;
 		case EXCHANGE_IKE_AUTH:
 		case EXCHANGE_CREATE_CHILD_SA:
@@ -985,6 +1056,7 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 
 	datagram_spec ds = {};
 	get_ds(&ds, &sm);
+	sm.ds = &ds;
 
 	if (SOCK_DGRAM == ds.so_type) {
 		if (500 == ds.lport) {
@@ -995,7 +1067,7 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 				zlog_info(zc, "IKE datagram not approved");
 			}
 			else {
-				ike_handle_message(fd, is, sm.buf, result);
+				ike_handle_message(&sm, is, sm.buf, result);
 			}
 		}
 		else if (4500 == ds.lport) {
@@ -1014,7 +1086,7 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 					zlog_info(zc, "IKE datagram not approved");
 				}
 				else {
-					ike_handle_message(fd, is, sm.buf+4, result-4);
+					ike_handle_message(&sm, is, sm.buf+4, result-4);
 				}
 			}
 		}

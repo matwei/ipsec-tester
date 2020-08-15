@@ -35,6 +35,8 @@
 #define PORT_IKE "500"
 #define PORT_IPSEC_NAT "4500"
 
+static unsigned char ipv4_mapped_ipv6_address_prefix[] = "\0\0\0\0\0\0\0\0\0\0\377\377";
+
 char * socket_type(int sockfd);
 
 void add_fd(int efd, int fd, uint32_t events) {
@@ -76,6 +78,20 @@ int bind_socket(int family, int st, const char *port) {
 	return sockfd;
 }// bind_socket()
 
+chunk_t get_address(unsigned char * buf) {
+	chunk_t addr;
+
+	if (memcmp(buf, ipv4_mapped_ipv6_address_prefix, 12)) {
+		addr.ptr = buf;
+		addr.len = 16;
+	}
+	else {
+		addr.ptr = &buf[12];
+		addr.len = 4;
+	}
+	return addr;
+}// get_address()
+
 datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
 	struct cmsghdr *cmptr;
 	socklen_t length = sizeof(ds->so_type);
@@ -101,16 +117,20 @@ datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
 			inet_ntop(AF_INET6,
 				  (void*)dap,
 				  ds->laddr, sizeof(ds->laddr));
+			ds->laddress = get_address(dap->s6_addr);
 		}
 	}
 	if (0 > getsockname(sm->sockfd, &laddr, &laddrlen)) {
 		perror("getsockname");
 	}
 	ds->lport = ntohs(laddr.sin6_port);
+	ds->lportn = laddr.sin6_port;
 	inet_ntop(AF_INET6,
 	          (void*)&(raddr->sin6_addr),
 	          ds->raddr, sizeof(ds->raddr));
 	ds->rport = ntohs(raddr->sin6_port);
+	ds->raddress = get_address(raddr->sin6_addr.s6_addr);
+	ds->rportn = raddr->sin6_port;
 	return ds;
 } // get_ds()
 

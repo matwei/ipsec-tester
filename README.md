@@ -1,30 +1,67 @@
 
 # IPsec Tester
 
-This is a system usable for learning and possible debugging IPsec.
+This is a program to analyze IPsec IKEv2 traffic.
 
-It consists of
+It interprets IPsec messages and acts on them.
 
-* an IPsec translator, that talks IKE and IPsec on the network
-* a data store that holds configuration and ephemeral data like packet
-  captures, logs, state
-* the IPsec RS interpreter that can interpret the data in the store and
-  trigger actions of the IPsec translator
+The goal of this program is
+to better understand the function of existing IPsec implementations.
 
-The purpose of the system is to find a uniform vocabulary for the
-configuration and state of IPsec implementations from different vendors.
+# Installation
 
-![IPsec Tester](images/ipsec-tester-dfd.png)
+## Prerequisites
 
-To use the system you would either connect with an web browser to the IPsec RS
-interpreter to define the configuration of an IPsec connection or you could
-use the command line interface of the interpreter.
+This program makes use of the [Zlog library][zlog] for flexible logging.
 
-Afterwards you can connect with your IPsec gateway to the IPsec translator
-and try to get a VPN tunnel established.
+The cryptographic functions are provided by [Libgcrypt][libgcrypt].
 
-Alternatively you could trigger the IPsec translator to establish a VPN
-tunnel to your gateway.
+## Installing
 
-In the interpreter you can see the view from the other side of the VPN tunnel.
+The program make use of [GNU Autoconf][autoconf].
+After having installed the development files
+of the Zlog library and Libgcrypt,
+you may clone the repository,
+reconfigure the Makefile and compile the program.
 
+    git clone https://github.com/matwei/ipsec-tester.git
+    cd ipsec-tester
+    autoreconf -i
+    ./configure
+    make
+
+If you want set the *CAP_NET_BIND_SERVICE* capability,
+you can use the `test-capabilities` target of the Makefile
+
+    make test-capabilities
+
+# Usage
+
+To use the program just call it and watch the output.
+
+    ./itip
+
+## Configuration
+
+At the moment the only configuration is through the file zlog.conf,
+which configures the logging of the Zlog library.
+
+You can define a different log format and send the logs to different targets.
+
+# Security
+
+Because this program needs to bind to UDP port 500 and raw sockets,
+it needs elevated privileges.
+
+If your system supports POSIX capabilities,
+it is recommended to give the compiled program
+the *CAP_NET_BIND_SERVICE* capability.
+
+The Makefile provides this capability
+when called as `make test-capabilities`:
+
+    sudo setcap cap_net_bind_service=ep $(bin_PROGRAMS)
+
+[autoconf]: https://www.gnu.org/software/autoconf/
+[libgcrypt]: https://gnupg.org/software/libgcrypt/
+[zlog]: https://hardysimpson.github.io/zlog/

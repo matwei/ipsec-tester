@@ -74,7 +74,9 @@ you can use the `test-capabilities` target of the Makefile
 
 # Usage
 
-To use the program just call it and watch the output.
+To use the program just call it
+and watch the output while a VPN gateway is trying
+to contact your machine.
 
     ./itip
 
@@ -82,8 +84,10 @@ To use the program just call it and watch the output.
 
 At the moment the only configuration is through the file zlog.conf,
 which configures the logging of the Zlog library.
-
 You can define a different log format and send the logs to different targets.
+
+Please look up the [zlog User's Guide][zlogug]
+for details about the logging configuration.
 
 # Security
 
@@ -102,3 +106,4 @@ when called as `make test-capabilities`:
 [autoconf]: https://www.gnu.org/software/autoconf/
 [libgcrypt]: https://gnupg.org/software/libgcrypt/
 [zlog]: https://hardysimpson.github.io/zlog/
+[zlogug]: http://hardysimpson.github.io/zlog/UsersGuide-EN.html

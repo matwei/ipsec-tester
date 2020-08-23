@@ -16,6 +16,43 @@ This program makes use of the [Zlog library][zlog] for flexible logging.
 
 The cryptographic functions are provided by [Libgcrypt][libgcrypt].
 
+### Zlog library
+
+To install the library you got to
+https://github.com/HardySimpson/zlog/releases
+and download a suitable version.
+Version 1.2.14 is known to work,
+any later version will probably work as well.
+
+After you downloaded the sources
+you extract the archive,
+change into the directory,
+compile and install the library.
+
+    tar -zxvf zlog-1.2.14.tar.gz
+    cd zlog-1.2.14
+    make
+    sudo make install
+
+After you have installed the library
+you have to update the cache of the dynamic linker
+so that it can be found by the running programm.
+Just call
+
+    ldconfig -v
+
+and make sure that the library is found.
+
+### Libgcrypt
+
+Libgcrypt is easier to install
+because it is available on many Linux distributions.
+Make sure to install the development package.
+
+On Ubuntu 18.04 you can install it like this:
+
+    apt install libgcrypt20-dev
+
 ## Installing
 
 The program make use of [GNU Autoconf][autoconf].

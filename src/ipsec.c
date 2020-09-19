@@ -184,12 +184,6 @@ int ike_approve_header(unsigned char *buf,
 			   ih->min_ver);
 		return 0;
 	}
-	else {
-		zlog_info(zc,
-			   "IKE version: %d.%d",
-			   ih->maj_ver,
-			   ih->min_ver);
-	}
 	switch (ih->extype) {
 		case EXCHANGE_IKE_SA_INIT:
 		case EXCHANGE_IKE_AUTH:
@@ -225,7 +219,7 @@ int ike_approve_header(unsigned char *buf,
 				   ih->npl);
 			return 0;
 	}
-	zlog_info(zc,"IKE header OK");
+	zlog_debug(zc,"IKE header OK");
 	return 1;
 }// ike_approve_header()
 
@@ -986,7 +980,19 @@ void ike_handle_message(socket_msg *sm, ipsec_s *is,
 	ike_header *ih = (ike_header *)buf;
 	uint32_t ih_length = ntohl(ih->length);
 	zlog_category_t *zc = zlog_get_category("IKE");
+	char ibuf[17];
 
+	zlog_info(zc,
+		  "IKE %d.%d iSPI:%s, rSPI:%s, MID: %ld",
+		  ih->maj_ver,
+		  ih->min_ver,
+		  bytearray_to_string((char *)&ih->ispi,8,ibuf,sizeof(ibuf)),
+		  bytearray_to_string((char *)&ih->ispi,8,ibuf,sizeof(ibuf)),
+		  ntohl(ih->mid));
+	zlog_info(zc,
+		  " exchange type: %s, flags %hhX",
+		  ike_exchange_name(ih->extype),
+		  ih->flags);
 	switch (ih->extype) {
 		case EXCHANGE_IKE_SA_INIT:
 			ike_hm_ike_sa_init(sm, is, buf, buflen);
@@ -1061,7 +1067,7 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	if (SOCK_DGRAM == ds.so_type) {
 		if (500 == ds.lport) {
 			zlog_category_t *zc = zlog_get_category("IKE");
-			zlog_info(zc, "investigating IKE datagram");
+			zlog_debug(zc, "investigating IKE datagram");
 			if (!ike_approve_header(sm.buf,
 						result)) {
 				zlog_info(zc, "IKE datagram not approved");

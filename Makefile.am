@@ -3,7 +3,8 @@ AUTOMAKE_OPTIONS = foreign subdir-objects
 bin_PROGRAMS = itip
 itip_SOURCES = src/itip.c \
 	       src/sockets.c src/sockets.h \
-	       src/ipsec.c src/ipsec.h
+	       src/ipsec.c src/ipsec.h \
+	       src/util.c src/util.h
 itip_LDADD = -lzlog $(LIBGCRYPT_LIBS) -lgpg-error
 
 AM_CPPFLAGS = $(LIBGCRYPT_CFLAGS)

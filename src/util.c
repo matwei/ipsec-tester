@@ -1,8 +1,8 @@
 /*
- * util.h
+ * util.c
  */
 /*
- Copyright (C) 2018 Mathias Weidner <mathias@mamawe.net>
+ Copyright (C) 2020 Mathias Weidner <mathias@mamawe.net>
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -18,16 +18,18 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef UTIL_H
-#define UTIL_H
+#include <stdio.h>
 
-#include <stdlib.h>
+#include "util.h"
 
-typedef struct {
-	unsigned char * ptr;
-	size_t		len;
-} chunk_t;
-
-char * bytearray_to_string(const char *, size_t, char *, size_t);
-
-#endif /* UTIL_H */
+char * bytearray_to_string(const char * array, size_t as,
+			   char * buf, size_t bs) {
+	char * bp = buf;
+	char * const ep = buf + bs;
+	for (int i = 0; i < as; i++) {
+		if (bp + 3 < ep) {
+			bp += sprintf(bp, "%02hhX", array[i]);
+		}
+	}
+	return buf;
+} // bytearray_to_string()

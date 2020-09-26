@@ -1100,4 +1100,4 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 
 	// for now send an empty IKE message back
 	ike_send_datagram(&sm, is_nat_t, 0);
-}// ipsec_handle_ike()
+}// ipsec_handle_datagram()

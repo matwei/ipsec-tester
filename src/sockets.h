@@ -42,16 +42,26 @@ typedef struct {
 	unsigned short rportn;
 } datagram_spec;
 
+/**
+ * A structure holding auxillary data for a IKEv2 message
+ */
 typedef struct {
+	/// The socket used to receive the message and send the answer
 	int sockfd;
+	/// The struct msghdr used by recvmsg() / sendmsg()
 	struct msghdr msg;
+	/// The struct sockaddr_in6 used by recvmsg() for the source address
 	struct sockaddr_in6 paddr;
+	/// The struct iovec required for recvmsg() / sendmsg()
 	struct iovec iov[1];
+	/// The cmsghdr and buffer for recvmsg() / sendmsg()
 	union {
 		struct cmsghdr cm; // this is to control the alignment
 		char   control[1000];
 	} control_un;
+	/// The buffer for the received / sent data
 	unsigned char buf[MAX_SOCKET_BUF];
+	/// A pointer to the various parameters of the received datagram
 	datagram_spec *ds;
 } socket_msg;
 

@@ -29,16 +29,37 @@
 
 #define MAX_SOCKET_BUF 10240
 
+/**
+ * A structure holding metadata about the received datagram
+ * */
 typedef struct {
+	/// The socket type (usually SOCK_DGRAM)
 	int so_type;
+	/// A pointer to a string describing the socket type
 	char * sock_type;
+	/// The destination address of a received datagram (local address)
 	char laddr[INET6_ADDRSTRLEN];
+	/// The local address in network byte order
+
+	/// This can point either to the whole 16 bytes of an IPv6
+	/// address or to the last 4 bytes of an IPv4-mapped IPv6
+	/// address.
 	chunk_t laddress;
+	/// The local port of a UDP datagram
 	unsigned short lport;
+	/// The local port of a UDP datagram in network byte order
 	unsigned short lportn;
+	/// The source address of a received datagram (remote address)
 	char raddr[INET6_ADDRSTRLEN];
+	/// The remote address in network byte order
+
+	/// This can point either to the whole 16 bytes of an IPv6
+	/// address or to the last 4 bytes of an IPv4-mapped IPv6
+	/// address.
 	chunk_t raddress;
+	/// The remote port of a UDP datagram
 	unsigned short rport;
+	/// The remote port of a UDP datagram in network byte order
 	unsigned short rportn;
 } datagram_spec;
 

@@ -22,6 +22,7 @@
 #define IPSEC_H
 
 #include "sockets.h"
+#include "util.h"
 
 #include <sys/types.h>
 #include <zlog.h>
@@ -40,5 +41,36 @@ typedef void (*ipsec_dg_handler)(int fd, ipsec_s *is);
 void ipsec_handle_datagram(int, ipsec_s *);
 
 #define ITIP_ZLOG_CONF "zlog.conf"
+
+buffer_const_err_s ike_find_last_payload(char const * buf, size_t buflen);
+
+/**
+ * The structure holding one peer in the SAD
+ */
+typedef struct {
+	/// the address of the peer
+	char raddr[INET6_ADDRSTRLEN];
+	/// the UDP port of the peer
+	unsigned short rport;
+	/// the SPI of the peer (either initiator or responder)
+	uint64_t rspi;
+	/// my address
+	char laddr[INET6_ADDRSTRLEN];
+	/// my UDP port
+	unsigned short lport;
+	/// my SPI (either initiator or responder)
+	uint64_t lspi;
+	/// am I the initiator
+	int initiator;
+	/// next message ID of initiator
+	uint32_t mid_i;
+	/// next message ID of responder
+	uint32_t mid_r;
+} sad_peer;
+
+make_err_s(sad_peer *, sad_peer);
+
+sad_peer_err_s sad_get_peer_record(ipsec_s *is, sad_peer * peer);
+sad_peer_err_s sad_put_peer_record(ipsec_s *is, sad_peer * peer);
 
 #endif /* !IPSEC_H */

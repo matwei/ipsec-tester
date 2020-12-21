@@ -2,7 +2,7 @@
  * \brief IPsec related functions
  */
 /*
- * Copyright (C) 2017 Mathias Weidner <mathias@mamawe.net>
+ * Copyright (C) 2017-2020 Mathias Weidner <mathias@mamawe.net>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,10 +32,17 @@ typedef struct __attribute__((__packed__)) {
 	uint32_t mid, length;
 } ike_header;
 
+#define IKE_FLAG_R(ih) (ih->flags & 0x20)
+#define IKE_FLAG_V(ih) (ih->flags & 0x10)
+#define IKE_FLAG_I(ih) (ih->flags & 0x08)
+
+#define IKE_FLAG_R_SET(ih) (ih->flags |= 0x20)
+
+#define IKE_FLAG_I_CLEAR(ih) (ih->flags &= ~0x08)
+
 typedef struct __attribute__((__packed__)) {
 	uint8_t npl;
-	unsigned int reserved : 7;
-	unsigned int critical : 1;
+	uint8_t flags;
 	uint16_t pl_length; 
 } ike_gph;	// generic paylod header
 
@@ -146,6 +153,65 @@ uint8_t * ike_notify_data(ike_notify_pl *);
 #define NPL_D 42
 #define NPL_V 43
 #define NPL_SK 46
+
+/**
+ * Add a payload to a buffer
+ *
+ * @param buf points at beginning of buffer
+ *
+ * @param buflen size of the buffer
+ *
+ * @param payload is the payload to add to the buffer
+ *
+ * @return pointer to the end of the payload and error condition
+ */
+buffer_const_err_s ike_add_payload(char * buf, size_t buflen, ike_gph * const payload) {
+	buffer_const_err_s out ={};
+	if (buflen < sizeof(ike_gph)) {
+		out.error = "buffer too small for generic payload header";
+		return out;
+	}
+	size_t pl_length = ntohs(payload->pl_length);
+	if (pl_length < sizeof(ike_gph)) {
+		out.error = "payload length less then 4";
+	}
+	else if (pl_length > buflen) {
+		out.error = "payload exceeds buffer";
+	}
+	else {
+		memcpy(buf,payload,pl_length);
+		out.value = buf + pl_length;
+	}
+	return out;
+} // ike_add_payload()
+
+/**
+ * Find the last payload in a buffer
+ *
+ * @param buf points at a buffer containing zero or more IKE payloads
+ *
+ * @param buflen size of the buffer
+ */
+buffer_const_err_s ike_find_last_payload(char const * buf, size_t buflen) {
+	buffer_const_err_s out = {};
+	if (buflen < sizeof(ike_gph)) {
+		out.error = "buffer too small for generic payload header";
+		return out;
+	}
+	size_t avlen = buflen;
+	ike_gph * cph = (ike_gph *)buf;
+	size_t pl_length = ntohs(cph->pl_length);
+	if (pl_length < sizeof(ike_gph)) {
+		out.error = "payload length less then 4";
+	}
+	else if (pl_length > avlen) {
+		out.error = "payload exceeds buffer";
+	}
+	else if (0 == cph->npl) {
+		out.value = (char *)cph;
+	}
+	return out;
+} // ike_find_last_payload()
 
 /**
  * Approve that the IKE header is valid
@@ -931,7 +997,7 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 					// TODO: use KE payload
 				}
 				break;
-			case 41: // Nonce
+			case 41: // Notify
 				if (ike_parse_notify_payload(bp, pl_length, sm)) {
 					// TODO: use KE payload
 				}
@@ -957,6 +1023,15 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 			return;
 		}
 	}
+	// prepare a NO_PROPOSAL_CHOSEN reply
+	ike_notify_pl answer = { .gph.npl=0, .gph.pl_length=htons(8),
+	                         .protocol_id=1, .message_type=htons(14)};
+	buffer_const_err_s result;
+	result = ike_add_payload(buf + sizeof(ike_header),
+	                         buflen - sizeof(ike_header),
+				 (ike_gph*)&answer);
+	ih->npl = 41;
+	ih->length = htonl(36);
 }// ike_hm_ike_sa_init()
 
 /**
@@ -988,7 +1063,7 @@ void ike_handle_message(socket_msg *sm, ipsec_s *is,
 		  ih->min_ver,
 		  bytearray_to_string((char *)&ih->ispi,8,ibuf,sizeof(ibuf)),
 		  bytearray_to_string((char *)&ih->ispi,8,ibuf,sizeof(ibuf)),
-		  ntohl(ih->mid));
+		  (unsigned long)ntohl(ih->mid));
 	zlog_info(zc,
 		  " exchange type: %s, flags %hhX",
 		  ike_exchange_name(ih->extype),
@@ -1005,6 +1080,10 @@ void ike_handle_message(socket_msg *sm, ipsec_s *is,
 				   "can't handle %s message yet",
 				   ike_exchange_name(ih->extype));
 	}
+	// for now just set the responder flag
+	// and clear the intiator flag
+	IKE_FLAG_R_SET(ih);
+	IKE_FLAG_I_CLEAR(ih);
 }// ike_handle_message()
 
 /**
@@ -1020,7 +1099,7 @@ ssize_t ike_send_datagram(socket_msg *psm,
 			  bool is_nat_t,
 			  ssize_t length) {
 	ike_header *ih;
-	ssize_t dglen = sizeof(ike_header) + length;
+	ssize_t dglen = 0;
 
 	if (is_nat_t) {
 		dglen += 4;
@@ -1029,10 +1108,7 @@ ssize_t ike_send_datagram(socket_msg *psm,
 	else {
 		ih = (ike_header *)(psm->buf);
 	}
-	ih->length = htonl(sizeof(ike_header) + length);
-	if (0 == length) {
-		ih->npl = 0;
-	}
+	dglen += ntohl(ih->length);
 	psm->msg.msg_iov[0].iov_len= dglen;
 	return socket_sendmsg(psm);
 }// ike_send_datagram()
@@ -1101,3 +1177,4 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	// for now send an empty IKE message back
 	ike_send_datagram(&sm, is_nat_t, 0);
 }// ipsec_handle_datagram()
+

@@ -1,4 +1,3 @@
-
 # PDFs here are generated
 
 *.pdf
@@ -13,9 +12,11 @@ aclocal.m4
 autom4te.cache/
 build/
 compile
+config.guess
 config.h.in
 config.log
 config.status
+config.sub
 configure
 doc/doxygen/html
 doc/doxygen/latex
@@ -25,4 +26,5 @@ itip
 missing
 src/.deps/
 src/.dirstamp
+test_ipsec
 

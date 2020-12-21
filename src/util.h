@@ -30,4 +30,15 @@ typedef struct {
 
 char * bytearray_to_string(const char *, size_t, char *, size_t);
 
+// taken from: Klemens, 21 Century C, O'Reilly, 2013
+
+#define make_err_s(intype, shortname) \
+    typedef struct {                  \
+	    intype value;             \
+	    char const * error;       \
+    } shortname##_err_s
+
+make_err_s(unsigned char *, buffer);
+make_err_s(unsigned char const *, buffer_const);
+
 #endif /* UTIL_H */

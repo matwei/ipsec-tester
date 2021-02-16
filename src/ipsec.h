@@ -42,7 +42,8 @@ void ipsec_handle_datagram(int, ipsec_s *);
 
 #define ITIP_ZLOG_CONF "zlog.conf"
 
-buffer_const_err_s ike_find_last_payload(char const * buf, size_t buflen);
+buffer_const_err_s ike_find_last_payload(unsigned char const * buf, size_t buflen);
+buffer_const_err_s ike_response_no_proposal_chosen(unsigned char * buf, size_t buflen);
 
 /**
  * The structure holding one peer in the SAD

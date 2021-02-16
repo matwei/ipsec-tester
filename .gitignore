@@ -28,5 +28,6 @@ itip.pid
 missing
 src/.deps/
 src/.dirstamp
+tags
 test_ipsec
 

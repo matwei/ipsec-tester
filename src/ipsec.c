@@ -165,7 +165,7 @@ uint8_t * ike_notify_data(ike_notify_pl *);
  *
  * @return pointer to the end of the payload and error condition
  */
-buffer_const_err_s ike_add_payload(char * buf, size_t buflen, ike_gph * const payload) {
+buffer_const_err_s ike_payload_add(char * buf, size_t buflen, ike_gph * const payload) {
 	buffer_const_err_s out ={};
 	if (buflen < sizeof(ike_gph)) {
 		out.error = "buffer too small for generic payload header";
@@ -183,7 +183,7 @@ buffer_const_err_s ike_add_payload(char * buf, size_t buflen, ike_gph * const pa
 		out.value = buf + pl_length;
 	}
 	return out;
-} // ike_add_payload()
+} // ike_payload_add()
 
 /**
  * Find the last payload in a buffer
@@ -192,7 +192,7 @@ buffer_const_err_s ike_add_payload(char * buf, size_t buflen, ike_gph * const pa
  *
  * @param buflen size of the buffer
  */
-buffer_const_err_s ike_find_last_payload(char const * buf, size_t buflen) {
+buffer_const_err_s ike_find_last_payload(unsigned char const * buf, size_t buflen) {
 	buffer_const_err_s out = {};
 	if (buflen < sizeof(ike_gph)) {
 		out.error = "buffer too small for generic payload header";
@@ -1024,14 +1024,8 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 		}
 	}
 	// prepare a NO_PROPOSAL_CHOSEN reply
-	ike_notify_pl answer = { .gph.npl=0, .gph.pl_length=htons(8),
-	                         .protocol_id=1, .message_type=htons(14)};
 	buffer_const_err_s result;
-	result = ike_add_payload(buf + sizeof(ike_header),
-	                         buflen - sizeof(ike_header),
-				 (ike_gph*)&answer);
-	ih->npl = 41;
-	ih->length = htonl(36);
+	result = ike_response_no_proposal_chosen(buf,buflen);
 }// ike_hm_ike_sa_init()
 
 /**
@@ -1178,3 +1172,16 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	ike_send_datagram(&sm, is_nat_t, 0);
 }// ipsec_handle_datagram()
 
+buffer_const_err_s ike_response_no_proposal_chosen(unsigned char * buf,
+                                                   size_t buflen) {
+	buffer_const_err_s result;
+	ike_header *ih = (ike_header *)buf;
+	ike_notify_pl answer = { .gph.npl=0, .gph.pl_length=htons(8),
+	                         .protocol_id=1, .message_type=htons(14)};
+	result = ike_payload_add(buf + sizeof(ike_header),
+	                         buflen - sizeof(ike_header),
+				 (ike_gph*)&answer);
+	ih->npl = 41;
+	ih->length = htonl(36);
+	return result;
+}

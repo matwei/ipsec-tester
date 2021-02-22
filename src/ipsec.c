@@ -1025,7 +1025,7 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 	}
 	// prepare a NO_PROPOSAL_CHOSEN reply
 	buffer_const_err_s result;
-	result = ike_response_no_proposal_chosen(buf,buflen);
+	result = ike_response_ike_sa_init(buf,buflen, NULL);
 }// ike_hm_ike_sa_init()
 
 /**
@@ -1171,6 +1171,17 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	// for now send an empty IKE message back
 	ike_send_datagram(&sm, is_nat_t, 0);
 }// ipsec_handle_datagram()
+
+buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf,
+                                            size_t buflen,
+					    sad_peer * peer) {
+	buffer_const_err_s result = { .error="not implemented yet" };
+
+	if (NULL == peer) {
+		return ike_response_no_proposal_chosen(buf,buflen);
+	}
+	return result;
+}// ike_response_ike_sa_init()
 
 buffer_const_err_s ike_response_no_proposal_chosen(unsigned char * buf,
                                                    size_t buflen) {

@@ -13,8 +13,8 @@ test_ipsec_SOURCES = src/test_ipsec.c \
 	       src/util.c src/util.h
 test_ipsec_LDADD = -lzlog $(LIBGCRYPT_LIBS) -lgpg-error
 
-AM_CPPFLAGS = $(LIBGCRYPT_CFLAGS)
-AM_LDFLAGS =
+AM_CPPFLAGS = $(LIBGCRYPT_CFLAGS) $(GMODULE_CFLAGS)
+AM_LDFLAGS = $(GMODULE_LIBS)
 
 dist_doc_DATA = README.md \
 doc/adr/0001-record-architecture-decisions.md doc/adr/0002-use-libpcap-and-libnet.md doc/adr/0003-only-work-with-configured-vpns.md

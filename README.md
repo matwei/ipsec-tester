@@ -43,15 +43,15 @@ Just call
 
 and make sure that the library is found.
 
-### Libgcrypt
+### Libgcrypt and GLib
 
-Libgcrypt is easier to install
-because it is available on many Linux distributions.
+Libgcrypt and GLib are easier to install
+because they are available on many Linux distributions.
 Make sure to install the development package.
 
 On Ubuntu 18.04 you can install it like this:
 
-    apt install libgcrypt20-dev
+    apt install libgcrypt20-dev libglib2.0-dev
 
 ## Installing
 

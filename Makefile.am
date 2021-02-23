@@ -6,7 +6,7 @@ itip_SOURCES = src/itip.c \
 	       src/ipsec.c src/ipsec.h \
 	       src/ipsecsad.c \
 	       src/util.c src/util.h
-itip_LDADD = -lzlog $(LIBGCRYPT_LIBS) -lgpg-error
+itip_LDADD = -lzlog $(LIBGCRYPT_LIBS) -lgpg-error $(GMODULE_LIBS)
 test_ipsec_SOURCES = src/test_ipsec.c \
 	       src/sockets.c src/sockets.h \
 	       src/ipsec.c src/ipsec.h \

@@ -22,7 +22,7 @@
 
 #include <string.h>
 
-static sad_peer just_one_peer = {};
+static ipsec_sa just_one_peer = {};
 
 /**
  * get an SAD record for the given peer
@@ -33,8 +33,8 @@ static sad_peer just_one_peer = {};
  *
  * @return - the filled in template and an error condition
  */
-sad_peer_err_s sad_get_peer_record(ipsec_s *is,  sad_peer *peer) {
-	sad_peer_err_s out = { .value=peer };
+ipsec_sa_err_s sad_get_peer_record(ipsec_s *is,  ipsec_sa *peer) {
+	ipsec_sa_err_s out = { .value=peer };
 	if (memcmp(peer->raddr,just_one_peer.raddr,sizeof(just_one_peer.raddr))
 		&& peer->rport != just_one_peer.rport) {
 		out.error = "peer not found";
@@ -54,8 +54,8 @@ sad_peer_err_s sad_get_peer_record(ipsec_s *is,  sad_peer *peer) {
  *
  * @return - an error condition
  */
-sad_peer_err_s sad_put_peer_record(ipsec_s *is,  sad_peer *peer) {
-	sad_peer_err_s out = { .value=peer };
+ipsec_sa_err_s sad_put_peer_record(ipsec_s *is,  ipsec_sa *peer) {
+	ipsec_sa_err_s out = { .value=peer };
 
 	memcpy(&just_one_peer, peer, sizeof(just_one_peer));
 	return out;

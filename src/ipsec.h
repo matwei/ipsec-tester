@@ -64,15 +64,15 @@ typedef struct {
 	uint32_t mid_i;
 	/// next message ID of responder
 	uint32_t mid_r;
-} sad_peer;
+} ipsec_sa;
 
-make_err_s(sad_peer *, sad_peer);
+make_err_s(ipsec_sa *, ipsec_sa);
 
-sad_peer_err_s sad_get_peer_record(ipsec_s *is, sad_peer * peer);
-sad_peer_err_s sad_put_peer_record(ipsec_s *is, sad_peer * peer);
+ipsec_sa_err_s sad_get_peer_record(ipsec_s *is, ipsec_sa * peer);
+ipsec_sa_err_s sad_put_peer_record(ipsec_s *is, ipsec_sa * peer);
 
 buffer_const_err_s ike_find_last_payload(unsigned char const * buf, size_t buflen);
-buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf, size_t buflen, sad_peer * peer);
+buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf, size_t buflen, ipsec_sa * peer);
 buffer_const_err_s ike_response_no_proposal_chosen(unsigned char * buf, size_t buflen);
 
 #endif /* !IPSEC_H */

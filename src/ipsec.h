@@ -46,24 +46,14 @@ void ipsec_handle_datagram(int, ipsec_s *);
  * The structure holding one peer in the SAD
  */
 typedef struct {
-	/// the address of the peer
-	char raddr[INET6_ADDRSTRLEN];
-	/// the UDP port of the peer
-	unsigned short rport;
-	/// the SPI of the peer (either initiator or responder)
-	uint64_t rspi;
-	/// my address
-	char laddr[INET6_ADDRSTRLEN];
-	/// my UDP port
-	unsigned short lport;
-	/// my SPI (either initiator or responder)
-	uint64_t lspi;
-	/// am I the initiator
-	int initiator;
-	/// next message ID of initiator
-	uint32_t mid_i;
-	/// next message ID of responder
-	uint32_t mid_r;
+	/// the SPI of this SA entry
+	uint64_t spi;
+	/// the protocol ID: 1 IKE, 2 AH, 3 ESP
+	uint8_t pid;
+	/// the destination address
+	char daddr[INET6_ADDRSTRLEN];
+	/// the source address
+	char saddr[INET6_ADDRSTRLEN];
 } ipsec_sa;
 
 make_err_s(ipsec_sa *, ipsec_sa);

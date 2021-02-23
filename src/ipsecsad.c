@@ -20,9 +20,19 @@
 
 #include "ipsec.h"
 
+#include <gmodule.h>
+#include <stdlib.h>
 #include <string.h>
 
-static ipsec_sa just_one_peer = {};
+static GList * sad;
+
+static gint ipsec_sa_compare(gconstpointer a,
+                             gconstpointer b) {
+	ipsec_sa * sa_a = (ipsec_sa *)a;
+	ipsec_sa * sa_b = (ipsec_sa *)b;
+
+	return memcmp(&sa_a->spi, &sa_b->spi, sizeof(sa_a->spi));
+} // ipsec_sa_compare()
 
 /**
  * get an SAD record for the given peer
@@ -33,20 +43,32 @@ static ipsec_sa just_one_peer = {};
  *
  * @return - the filled in template and an error condition
  */
-ipsec_sa_err_s sad_get_peer_record(ipsec_s *is,  ipsec_sa *peer) {
-	ipsec_sa_err_s out = { .value=peer };
-	if (memcmp(peer->raddr,just_one_peer.raddr,sizeof(just_one_peer.raddr))
-		&& peer->rport != just_one_peer.rport) {
-		out.error = "peer not found";
-	}
-	else {
-		memcpy(peer,&just_one_peer, sizeof(just_one_peer));
+ipsec_sa_err_s sad_get_record(ipsec_s *is,  ipsec_sa *peer) {
+	ipsec_sa_err_s out = {};
+	ipsec_sa * sa_a = (ipsec_sa *)peer;
+	GList * cur = g_list_first(sad);
+	do {
+		ipsec_sa * sa_b = (ipsec_sa *)cur->data;
+		if (0 == memcmp(&sa_a->spi, &sa_b->spi, sizeof(sa_a->spi))) {
+			out.value = cur->data;
+			break;
+		}
+	} while (cur = cur->next);
+	return out;
+} // sad_get_record()
+
+ipsec_sa_err_s sad_del_record(ipsec_s *is,  ipsec_sa *peer) {
+	ipsec_sa_err_s out = sad_get_record(is, peer);
+
+	if (out.value) {
+		free(out.value);
+		out.value = 0;
 	}
 	return out;
-} // sad_get_peer_record()
+} // sad_del_record()
 
 /**
- * put a record back into SAD
+ * put a record into SAD
  *
  * @param is - the ipsec instance
  *
@@ -54,9 +76,21 @@ ipsec_sa_err_s sad_get_peer_record(ipsec_s *is,  ipsec_sa *peer) {
  *
  * @return - an error condition
  */
-ipsec_sa_err_s sad_put_peer_record(ipsec_s *is,  ipsec_sa *peer) {
-	ipsec_sa_err_s out = { .value=peer };
+ipsec_sa_err_s sad_put_record(ipsec_s *is,  ipsec_sa *peer) {
+	ipsec_sa_err_s out = { .value=malloc(sizeof(ipsec_sa)) };
 
-	memcpy(&just_one_peer, peer, sizeof(just_one_peer));
+	if (out.value) {
+		sad = g_list_insert_sorted(sad,
+		                           out.value,
+				           ipsec_sa_compare);
+		// TODO: What happens when item can't be inserted?
+	}
+	else {
+		out.error = "could not allocate memory for SA record";
+	}
 	return out;
-} // sad_put_peer_record()
+} // sad_put_record()
+
+void sad_destroy() {
+	g_list_free_full(g_steal_pointer(&sad), free);
+} // sad_destroy()

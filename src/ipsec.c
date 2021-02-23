@@ -1174,7 +1174,7 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 
 buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf,
                                             size_t buflen,
-					    sad_peer * peer) {
+					    ipsec_sa * peer) {
 	buffer_const_err_s result = { .error="not implemented yet" };
 
 	if (NULL == peer) {

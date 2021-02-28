@@ -35,30 +35,21 @@ static gint ipsec_sa_compare(gconstpointer a,
 } // ipsec_sa_compare()
 
 /**
- * get an SAD record for the given peer
+ * create an SAD record with reverse addresses using new SPI
  *
- * @param is - the ipsec instance
+ * @param peer - a template structure for an IPsec SA 
  *
- * @param peer - a template structure for an IPsec peer
+ * @param spi  - the SPI to be used for the new SA record
  *
- * @return - the filled in template and an error condition
+ * @return - the new SAD record and an error condition
  */
-ipsec_sa_err_s sad_get_record(ipsec_s *is,  ipsec_sa *peer) {
-	ipsec_sa_err_s out = {};
-	ipsec_sa * sa_a = (ipsec_sa *)peer;
-	GList * cur = g_list_first(sad);
-	do {
-		ipsec_sa * sa_b = (ipsec_sa *)cur->data;
-		if (0 == memcmp(&sa_a->spi, &sa_b->spi, sizeof(sa_a->spi))) {
-			out.value = cur->data;
-			break;
-		}
-	} while (cur = cur->next);
-	return out;
-} // sad_get_record()
+ipsec_sa_err_s sad_add_reverse_record(ipsec_sa * peer, uint64_t spi) {
+	ipsec_sa new_sa = { .spi=spi, .spid=peer->spid };
+	return sad_put_record(&new_sa);
+} // sad_add_reverse_record()
 
-ipsec_sa_err_s sad_del_record(ipsec_s *is,  ipsec_sa *peer) {
-	ipsec_sa_err_s out = sad_get_record(is, peer);
+ipsec_sa_err_s sad_del_record(ipsec_sa *peer) {
+	ipsec_sa_err_s out = sad_get_record(peer);
 
 	if (out.value) {
 		free(out.value);
@@ -66,6 +57,28 @@ ipsec_sa_err_s sad_del_record(ipsec_s *is,  ipsec_sa *peer) {
 	}
 	return out;
 } // sad_del_record()
+
+/**
+ * get an SAD record for the given peer
+ *
+ * @param peer - a template structure for an IPsec SA
+ *
+ * @return - the filled in template and an error condition
+ */
+ipsec_sa_err_s sad_get_record(ipsec_sa *peer) {
+	ipsec_sa_err_s out = {};
+	ipsec_sa * sa_a = (ipsec_sa *)peer;
+	GList * cur = g_list_first(sad);
+	while (cur) {
+		ipsec_sa * sa_b = (ipsec_sa *)cur->data;
+		if (0 == memcmp(&sa_a->spi, &sa_b->spi, sizeof(sa_a->spi))) {
+			out.value = cur->data;
+			break;
+		}
+		cur = cur->next;
+	}
+	return out;
+} // sad_get_record()
 
 /**
  * put a record into SAD
@@ -76,8 +89,16 @@ ipsec_sa_err_s sad_del_record(ipsec_s *is,  ipsec_sa *peer) {
  *
  * @return - an error condition
  */
-ipsec_sa_err_s sad_put_record(ipsec_s *is,  ipsec_sa *peer) {
-	ipsec_sa_err_s out = { .value=malloc(sizeof(ipsec_sa)) };
+ipsec_sa_err_s sad_put_record(ipsec_sa *peer) {
+	ipsec_sa_err_s out = sad_get_record(peer);
+
+	if (out.value) {
+		out.error = "record already in SAD";
+		return out;
+	}
+
+	out.value = malloc(sizeof(ipsec_sa));
+	memcpy(out.value, peer, sizeof(ipsec_sa));
 
 	if (out.value) {
 		sad = g_list_insert_sorted(sad,

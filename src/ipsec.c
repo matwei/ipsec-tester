@@ -968,6 +968,8 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 	uint8_t npl = ih->npl;
 	unsigned char * const ep = buf + buflen;
 	unsigned char *bp = buf + sizeof(ike_header);
+	// TODO: add sa.daddr, sa.saddr
+	ipsec_sa sa = { .spi=ih->ispi, .spid=IKEv2_SPID_IKE };
 	while (bp < ep) {
 		ike_gph * ngph = (ike_gph*)bp;
 		uint16_t pl_length = ntohs(ngph->pl_length);
@@ -1023,10 +1025,26 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 			return;
 		}
 	}
-	// prepare a NO_PROPOSAL_CHOSEN reply
+	ipsec_sa_err_s insert = sad_put_record(&sa);
+	if (insert.error) {
+		zlog_error(zc,
+		           "could not add record to SAD: %s",
+			   insert.error);
+		return;
+	}
+	else {
+		uint64_t reverse_spi = ~sa.spi;
+		insert = sad_add_reverse_record(&sa, reverse_spi);
+		if (insert.error) {
+			zlog_error(zc,
+				   "could not add reverse record to SAD: %s",
+				   insert.error);
+			return;
+		}
+	}
 	buffer_const_err_s result;
 	result = ike_response_ike_sa_init(buf,buflen, NULL);
-}// ike_hm_ike_sa_init()
+	}// ike_hm_ike_sa_init()
 
 /**
  * Handle an already approved IKE message

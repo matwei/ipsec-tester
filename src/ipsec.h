@@ -27,6 +27,10 @@
 #include <sys/types.h>
 #include <zlog.h>
 
+#define IKEv2_SPID_IKE 1
+#define IKEv2_SPID_AH  2
+#define IKEv2_SPID_ESP 3
+
 typedef struct {
 	int mdc_counter;
 } ipsec_s;
@@ -48,8 +52,8 @@ void ipsec_handle_datagram(int, ipsec_s *);
 typedef struct {
 	/// the SPI of this SA entry
 	uint64_t spi;
-	/// the protocol ID: 1 IKE, 2 AH, 3 ESP
-	uint8_t pid;
+	/// the security protocol ID: 1 IKE, 2 AH, 3 ESP
+	uint8_t spid;
 	/// the destination address
 	char daddr[INET6_ADDRSTRLEN];
 	/// the source address
@@ -58,8 +62,9 @@ typedef struct {
 
 make_err_s(ipsec_sa *, ipsec_sa);
 
-ipsec_sa_err_s sad_get_peer_record(ipsec_s *is, ipsec_sa * peer);
-ipsec_sa_err_s sad_put_peer_record(ipsec_s *is, ipsec_sa * peer);
+ipsec_sa_err_s sad_add_reverse_record(ipsec_sa * peer, uint64_t spi);
+ipsec_sa_err_s sad_get_record(ipsec_sa * peer);
+ipsec_sa_err_s sad_put_record(ipsec_sa * peer);
 
 buffer_const_err_s ike_find_last_payload(unsigned char const * buf, size_t buflen);
 buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf, size_t buflen, ipsec_sa * peer);

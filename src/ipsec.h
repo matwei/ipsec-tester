@@ -58,6 +58,13 @@ typedef struct {
 	char daddr[INET6_ADDRSTRLEN];
 	/// the source address
 	char saddr[INET6_ADDRSTRLEN];
+	struct {
+		uint16_t encr;
+		uint16_t prf;
+		uint16_t integ;
+		uint16_t dh;
+		uint16_t esn;
+	} transform;
 } ipsec_sa;
 
 make_err_s(ipsec_sa *, ipsec_sa);

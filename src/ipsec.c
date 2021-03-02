@@ -598,7 +598,8 @@ int ike_parse_transforms(unsigned char *buf,
 }// ike_parse_transforms()
 
 int ike_parse_sa_payload(unsigned char *buf,
-                          ssize_t buflen) {
+                         ssize_t buflen,
+			 ipsec_sa * sa) {
 	unsigned char *bp = buf;
 	const unsigned char *ep = buf+buflen;
 	zlog_category_t *zc = zlog_get_category("IKE");
@@ -616,6 +617,7 @@ int ike_parse_sa_payload(unsigned char *buf,
 			  prop->protocol_id,
 			  prop->spi_size,
 			  prop->num_transforms);
+		sa->spid = prop->protocol_id;
 		if (!ike_parse_transforms(bp + sizeof(ike_sa_proposal),
 			                  prop_length - sizeof(ike_sa_proposal),
 					  prop->num_transforms)) {
@@ -985,7 +987,8 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 		switch (npl) {
 			case 33: // Security Association (SA)
 				if (ike_parse_sa_payload(bp+sizeof(ike_gph),
-					                 pl_length-sizeof(ike_gph))) {
+					                 pl_length-sizeof(ike_gph),
+							 &sa)) {
 					// TODO: use SA payload
 				}
 				break;

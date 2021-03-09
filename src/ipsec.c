@@ -154,26 +154,27 @@ uint8_t * ike_notify_data(ike_notify_pl *);
 #define NPL_V 43
 #define NPL_SK 46
 
-static ikev2_transform encr[] = {
-	{ .type=1, .id=12, .name="aes-cbc-128", .attr.keylen=128 },
+/** internal transform struct
+ */
+typedef struct {
+	uint8_t type;
+	uint16_t id;
+	char * name;
+	union {
+		short keylen;
+	} attr;
+} ikev2_transform;
+
+make_err_s(ikev2_transform *, ikev2_transform);
+
+static ikev2_transform transforms[] = {
 	{ .type=1, .id=12, .name="aes-cbc-256", .attr.keylen=256 },
-	{} // sentinel
-}; //  ikev2_transform encr[]
-
-static ikev2_transform prf[] = {
+	{ .type=1, .id=12, .name="aes-cbc-128", .attr.keylen=128 },
 	{ .type=2, .id=5, .name="prf-hmac-sha2-256" },
-	{} // sentinel
-}; //  ikev2_transform prf[]
-
-static ikev2_transform integ[] = {
 	{ .type=3, .id=12, .name="auth-hmac-sha2-256-128" },
-	{} // sentinel
-}; //  ikev2_transform integ[]
-
-static ikev2_transform dh[] = {
 	{ .type=4, .id=14, .name="modp-2048" },
 	{} // sentinel
-}; //  ikev2_transform dh[]
+}; //  ikev2_transform transforms[]
 
 /**
  * Add a payload to a buffer
@@ -568,6 +569,45 @@ const char * ike_transform_id_name(uint8_t transform_type, uint16_t id) {
 	}
 }// ike_transform_id_name()
 
+int ike_transform_equal_attr(ike_sa_transform *tf, ikev2_transform *tp) {
+	int ret = 0;
+	ike_sa_tf_attribute *ap = (ike_sa_tf_attribute *)(tf + 1);
+	uint16_t attr_type = ntohs(ap->format_type);
+	if ((attr_type & 0x8000)
+		&& 14 == (attr_type & 0x7fff)) {
+		ret = (tp->attr.keylen == ntohs(ap->length_value));
+	}
+	return ret;
+}// ike_transform_equal_attr()
+
+ikev2_transform_err_s ike_find_transform(unsigned char * buf, size_t buflen, int tnum) {
+	ikev2_transform_err_s out = {};
+	if (buflen < sizeof(ike_sa_transform)) {
+		out.error = "buffer to short for transform";
+	}
+	else {
+		ike_sa_transform * tf = (ike_sa_transform*)buf;
+		uint16_t tf_length = ntohs(tf->transform_length);
+		uint16_t tf_id = ntohs(tf->transform_id);
+		ikev2_transform * tp = transforms;
+		while (0 != tp->type) {
+			if (tp->type == tf->transform_type
+			   && tp->id == tf_id) {
+				if ((sizeof(ike_sa_transform) == tf_length)
+				   || ike_transform_equal_attr(tf, tp)) {
+					out.value = tp;
+					break;
+				}
+			}
+			tp++;
+		}
+		if (0 == out.value) {
+			out.error = "unknown transform";
+		}
+	}
+	return out;
+}// ike_find_transform()
+
 /**
  * parse transforms in proposals in SA payload
  *
@@ -592,25 +632,25 @@ int ike_parse_transforms(unsigned char *buf,
 		}
 		ike_sa_transform *tf = (ike_sa_transform *)bp;
 		uint16_t tf_length = ntohs(tf->transform_length);
-		uint16_t tf_id = ntohs(tf->transform_id);
-		zlog_info(zc,
-		          "  transform #%u [%hhu]: %s (%hhu): %s (%hu)",
-			  transform_number,
-			  tf_length,
-			  ike_transform_type_name(tf->transform_type),
-			  tf->transform_type,
-			  ike_transform_id_name(tf->transform_type, tf_id),
-			  tf_id);
-		if (TRANSFORM_ENCR == tf->transform_type
-			&& sizeof(ike_sa_transform) < tf_length) {
-			ike_sa_tf_attribute *ap = (ike_sa_tf_attribute *)(bp + sizeof(ike_sa_transform));
-			uint16_t attr_type = ntohs(ap->format_type);
-			if ((attr_type & 0x8000)
-				&& 14 == (attr_type &0x7fff)) {
-				zlog_info(zc,
-					  "   keylength: %hu",
-					  ntohs(ap->length_value));
-			}
+		ikev2_transform_err_s te = ike_find_transform(bp,
+						              tf_length,
+							      transform_number);
+		if (te.error) {
+			zlog_error(zc, " transform: #%u [%hhu]: %s",
+				   transform_number,
+				   tf_length,
+			           te.error);
+		}
+		else {
+			uint16_t tf_id = ntohs(tf->transform_id);
+			zlog_info(zc,
+				  "  transform #%u [%hhu]: %s (%hhu): %s (%hu)",
+				  transform_number,
+				  tf_length,
+				  ike_transform_type_name(tf->transform_type),
+				  te.value->type,
+				  te.value->name,
+				  te.value->id);
 		}
 		bp += tf_length;
 		++transform_number;

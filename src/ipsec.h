@@ -32,15 +32,6 @@
 #define IKEv2_SPID_ESP 3
 
 typedef struct {
-	uint8_t type;
-	uint16_t id;
-	char * name;
-	union {
-		short keylen;
-	} attr;
-} ikev2_transform;
-
-typedef struct {
 	int mdc_counter;
 } ipsec_s;
 

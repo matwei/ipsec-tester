@@ -23,7 +23,7 @@ doc/doxygen/latex
 depcomp
 install-sh
 itip
-itip.out
+itip.out*
 itip.pid
 missing
 src/.deps/

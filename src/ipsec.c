@@ -154,6 +154,27 @@ uint8_t * ike_notify_data(ike_notify_pl *);
 #define NPL_V 43
 #define NPL_SK 46
 
+static ikev2_transform encr[] = {
+	{ .type=1, .id=12, .name="aes-cbc-128", .attr.keylen=128 },
+	{ .type=1, .id=12, .name="aes-cbc-256", .attr.keylen=256 },
+	{} // sentinel
+}; //  ikev2_transform encr[]
+
+static ikev2_transform prf[] = {
+	{ .type=2, .id=5, .name="prf-hmac-sha2-256" },
+	{} // sentinel
+}; //  ikev2_transform prf[]
+
+static ikev2_transform integ[] = {
+	{ .type=3, .id=12, .name="auth-hmac-sha2-256-128" },
+	{} // sentinel
+}; //  ikev2_transform integ[]
+
+static ikev2_transform dh[] = {
+	{ .type=4, .id=14, .name="modp-2048" },
+	{} // sentinel
+}; //  ikev2_transform dh[]
+
 /**
  * Add a payload to a buffer
  *

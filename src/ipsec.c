@@ -165,7 +165,16 @@ typedef struct {
 	} attr;
 } ikev2_transform;
 
+typedef struct {
+	ikev2_transform * encr;
+	ikev2_transform * prf;
+	ikev2_transform * integ;
+	ikev2_transform * dh;
+	ikev2_transform * esn;
+} ikev2_transform_set;
+
 make_err_s(ikev2_transform *, ikev2_transform);
+make_err_s(ikev2_transform_set *, ikev2_transform_set);
 
 static ikev2_transform transforms[] = {
 	{ .type=1, .id=12, .name="aes-cbc-256", .attr.keylen=256 },
@@ -616,6 +625,8 @@ ikev2_transform_err_s ike_find_transform(unsigned char * buf, size_t buflen, int
  * @param buflen - length of buffer
  *
  * @num_transforms - number of expected transforms
+ *
+ * TODO: return ikev2_transform_set_err
  */
 int ike_parse_transforms(unsigned char *buf,
                          ssize_t buflen,
@@ -651,6 +662,7 @@ int ike_parse_transforms(unsigned char *buf,
 				  te.value->type,
 				  te.value->name,
 				  te.value->id);
+			// TODO: add transform to transform set
 		}
 		bp += tf_length;
 		++transform_number;

@@ -68,9 +68,9 @@ reconfigure the Makefile and compile the program.
     make
 
 If you want set the *CAP_NET_BIND_SERVICE* capability,
-you can use the `test-capabilities` target of the Makefile
+you can use the `set-capabilities` target of the Makefile
 
-    make test-capabilities
+    make set-capabilities
 
 # Usage
 
@@ -103,7 +103,36 @@ when called as `make test-capabilities`:
 
     sudo setcap cap_net_bind_service=ep $(bin_PROGRAMS)
 
+# Testing
+
+## Module tests with Sput
+
+The programm `test_ipsec`,
+that is compiled by calling the make target `test_ipsec`,
+performs some module tests when invoked.
+This program uses the [Sput Unit Testing Framework for C/C++][sput].
+
+## Shell tests using BATS
+
+There are system tests of the compiled program in directory *t/*.
+These tests use [BATS][] (the Bash Automated Testing System)
+and need the programs `nc` (Netcat), `xxd` (Vim) and `cmp` (Diffutils)
+to execute the tests.
+You invoke these tests like this:
+
+    bats t
+
+or
+
+    bats -t t
+
+Unfortunately there are versions of BATS that don't work with these tests.
+Especially *bat-core-1.1.0* that is shipped with Ubuntu 20.04
+will not work with these tests. Versions *1.2.1* and *1.3.0* are known to work.
+
 [autoconf]: https://www.gnu.org/software/autoconf/
+[BATS]: https://github.com/bats-core/bats-core
 [libgcrypt]: https://gnupg.org/software/libgcrypt/
+[sput]: https://www.use-strict.de/sput-unit-testing/
 [zlog]: https://hardysimpson.github.io/zlog/
 [zlogug]: http://hardysimpson.github.io/zlog/UsersGuide-EN.html

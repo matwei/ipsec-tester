@@ -19,6 +19,7 @@
 */
 
 #include <getopt.h>
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -88,6 +89,10 @@ options_s get_options(int argc, char **argv) {
 	return opt;
 } // get_options()
 
+void sig_usr1_handler(int signal) {
+	sad_dump_records((void (*)(const char *))puts);
+} // sig_usr1_handler()
+
 int main(int argc, char **argv) {
 	ipsec_s is = {};
 
@@ -100,6 +105,7 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"error: could not initialize zlog from '%s'\n", ITIP_ZLOG_CONF);
 		return 1;
 	}
+	signal(SIGUSR1,sig_usr1_handler);
 	socket_listen(opt.device, (socket_cb_handler)ipsec_handle_datagram, &is);
 	zlog_fini();
 	return 0;

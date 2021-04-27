@@ -72,6 +72,7 @@ make_err_s(ipsec_sa *, ipsec_sa);
 ipsec_sa_err_s sad_add_reverse_record(ipsec_sa * peer, uint64_t spi);
 ipsec_sa_err_s sad_get_record(ipsec_sa * peer);
 ipsec_sa_err_s sad_put_record(ipsec_sa * peer);
+void sad_dump_records(void (*pr)(const char *));
 
 buffer_const_err_s ike_find_last_payload(unsigned char const * buf, size_t buflen);
 buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf, size_t buflen, ipsec_sa * peer);

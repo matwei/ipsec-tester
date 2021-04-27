@@ -21,8 +21,12 @@
 #include "ipsec.h"
 
 #include <gmodule.h>
+#include <inttypes.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#define SAD_RECORD_PRINT_BUFLEN 60
 
 static GList * sad;
 
@@ -115,3 +119,27 @@ ipsec_sa_err_s sad_put_record(ipsec_sa *peer) {
 void sad_destroy() {
 	g_list_free_full(g_steal_pointer(&sad), free);
 } // sad_destroy()
+
+void sad_dump_records(void (*pr)(const char *)) {
+	GList * cur = g_list_first(sad);
+	char buf[SAD_RECORD_PRINT_BUFLEN] = "";
+	char saddrbuf[INET_ADDRSTRLEN];
+	char daddrbuf[INET_ADDRSTRLEN];
+	int num_entries = 0;
+	while (cur) {
+		ipsec_sa * sa_b = (ipsec_sa *)cur->data;
+		snprintf(buf,SAD_RECORD_PRINT_BUFLEN,
+		         "SPI:%" PRIx64 ", SPID:%" PRIx8 ", SA:%s, DA:%s",
+			 sa_b->spi, sa_b->spid,
+			 inet_ntop(AF_INET6,sa_b->saddr,saddrbuf,sizeof(saddrbuf)),
+			 inet_ntop(AF_INET6,sa_b->daddr,daddrbuf,sizeof(daddrbuf)));
+		pr(buf);
+		cur = cur->next;
+		++num_entries;
+	}
+	if (num_entries) {
+	}
+	else {
+		pr("empty SAD");
+	}
+} // sad_dump_records()

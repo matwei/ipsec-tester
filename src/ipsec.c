@@ -1045,6 +1045,10 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 	unsigned char *bp = buf + sizeof(ike_header);
 	// TODO: add sa.daddr, sa.saddr
 	ipsec_sa sa = { .spi=ih->ispi, .spid=IKEv2_SPID_IKE };
+	memcpy(&sa.daddr,&sm->ds->laddr,sizeof(sa.daddr));
+	memcpy(&sa.pdaddr,&sm->ds->pladdr,sizeof(sa.pdaddr));
+	memcpy(&sa.saddr,&sm->ds->raddr,sizeof(sa.saddr));
+	memcpy(&sa.psaddr,&sm->ds->praddr,sizeof(sa.psaddr));
 	while (bp < ep) {
 		ike_gph * ngph = (ike_gph*)bp;
 		uint16_t pl_length = ntohs(ngph->pl_length);

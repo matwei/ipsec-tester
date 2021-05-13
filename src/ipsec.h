@@ -55,9 +55,11 @@ typedef struct {
 	/// the security protocol ID: 1 IKE, 2 AH, 3 ESP
 	uint8_t spid;
 	/// the destination address
-	char daddr[INET6_ADDRSTRLEN];
+	struct in6_addr daddr;
+	char pdaddr[INET6_ADDRSTRLEN];
 	/// the source address
-	char saddr[INET6_ADDRSTRLEN];
+	struct in6_addr saddr;
+	char psaddr[INET6_ADDRSTRLEN];
 	struct {
 		uint16_t encr;
 		uint16_t prf;

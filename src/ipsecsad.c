@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SAD_RECORD_PRINT_BUFLEN 60
+#define SAD_RECORD_PRINT_BUFLEN 160
 
 static GList * sad;
 
@@ -131,8 +131,8 @@ void sad_dump_records(void (*pr)(const char *)) {
 		snprintf(buf,SAD_RECORD_PRINT_BUFLEN,
 		         "SPI:%" PRIx64 ", SPID:%" PRIx8 ", SA:%s, DA:%s",
 			 sa_b->spi, sa_b->spid,
-			 inet_ntop(AF_INET6,sa_b->saddr,saddrbuf,sizeof(saddrbuf)),
-			 inet_ntop(AF_INET6,sa_b->daddr,daddrbuf,sizeof(daddrbuf)));
+			 sa_b->psaddr,
+			 sa_b->pdaddr);
 		pr(buf);
 		cur = cur->next;
 		++num_entries;

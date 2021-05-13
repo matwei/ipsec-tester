@@ -38,8 +38,9 @@ typedef struct {
 	/// A pointer to a string describing the socket type
 	char * sock_type;
 	/// The destination address of a received datagram (local address)
-	char laddr[INET6_ADDRSTRLEN];
+	char pladdr[INET6_ADDRSTRLEN];
 	/// The local address in network byte order
+	struct in6_addr laddr;
 
 	/// This can point either to the whole 16 bytes of an IPv6
 	/// address or to the last 4 bytes of an IPv4-mapped IPv6
@@ -50,8 +51,9 @@ typedef struct {
 	/// The local port of a UDP datagram in network byte order
 	unsigned short lportn;
 	/// The source address of a received datagram (remote address)
-	char raddr[INET6_ADDRSTRLEN];
+	char praddr[INET6_ADDRSTRLEN];
 	/// The remote address in network byte order
+	struct in6_addr raddr;
 
 	/// This can point either to the whole 16 bytes of an IPv6
 	/// address or to the last 4 bytes of an IPv4-mapped IPv6

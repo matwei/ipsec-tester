@@ -116,7 +116,8 @@ datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
 			struct in6_addr *dap = &(pkt->ipi6_addr);
 			inet_ntop(AF_INET6,
 				  (void*)dap,
-				  ds->laddr, sizeof(ds->laddr));
+				  ds->pladdr, sizeof(ds->pladdr));
+			memcpy(&ds->laddr, dap, sizeof(ds->laddr));
 			ds->laddress = get_address(dap->s6_addr);
 		}
 	}
@@ -127,8 +128,9 @@ datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm) {
 	ds->lportn = laddr.sin6_port;
 	inet_ntop(AF_INET6,
 	          (void*)&(raddr->sin6_addr),
-	          ds->raddr, sizeof(ds->raddr));
+	          ds->praddr, sizeof(ds->praddr));
 	ds->rport = ntohs(raddr->sin6_port);
+	memcpy(&ds->raddr, &raddr->sin6_addr, sizeof(ds->raddr));
 	ds->raddress = get_address(raddr->sin6_addr.s6_addr);
 	ds->rportn = raddr->sin6_port;
 	return ds;
@@ -162,9 +164,9 @@ ssize_t socket_recvmsg(socket_msg *smp) {
 		zlog_info(zc, "rcvd %d bytes %s [%s]:%hu to [%s]:%hu",
 			  result,
 			  ds.sock_type,
-			  ds.raddr,
+			  ds.praddr,
 			  ds.rport,
-			  ds.laddr,
+			  ds.pladdr,
 			  ds.lport);
 	}
 	return result;
@@ -180,9 +182,9 @@ ssize_t socket_sendmsg(socket_msg *sm) {
 	zlog_info(zc, "sent %zu bytes %s [%s]:%hu to [%s]:%hu",
 		  result,
 		  ds.sock_type,
-		  ds.laddr,
+		  ds.pladdr,
 		  ds.lport,
-		  ds.raddr,
+		  ds.praddr,
 		  ds.rport);
 	return result;
 }// socket_sendmsg()

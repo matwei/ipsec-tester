@@ -173,8 +173,12 @@ typedef struct {
 	ikev2_transform * esn;
 } ikev2_transform_set;
 
+typedef struct {
+	ikev2_transform_set value;
+	char const *error;
+} ikev2_transform_set_err_s;
+
 make_err_s(ikev2_transform *, ikev2_transform);
-make_err_s(ikev2_transform_set *, ikev2_transform_set);
 
 static ikev2_transform transforms[] = {
 	{ .type=1, .id=12, .name="aes-cbc-256", .attr.keylen=256 },
@@ -628,9 +632,11 @@ ikev2_transform_err_s ike_find_transform(unsigned char * buf, size_t buflen, int
  *
  * TODO: return ikev2_transform_set_err
  */
-int ike_parse_transforms(unsigned char *buf,
-                         ssize_t buflen,
-		         int num_transforms) {
+ikev2_transform_set_err_s ike_parse_transforms(unsigned char *buf,
+                                               ssize_t buflen,
+		                               int num_transforms) {
+
+	ikev2_transform_set_err_s out = { .value = {} };
 	unsigned char *bp = buf;
 	const unsigned char *ep = buf+buflen;
 	zlog_category_t *zc = zlog_get_category("IKE");
@@ -639,7 +645,8 @@ int ike_parse_transforms(unsigned char *buf,
 		if (ep < bp + sizeof(ike_sa_transform)) {
 			zlog_error(zc, "buffer to short for transform %u",
 			           transform_number);
-			return 0;
+			out.error = "buffer to short for transform";
+			return out;
 		}
 		ike_sa_transform *tf = (ike_sa_transform *)bp;
 		uint16_t tf_length = ntohs(tf->transform_length);
@@ -662,12 +669,27 @@ int ike_parse_transforms(unsigned char *buf,
 				  te.value->type,
 				  te.value->name,
 				  te.value->id);
-			// TODO: add transform to transform set
+			// add transform to transform set
+			if (1 == tf->transform_type) {
+				out.value.encr = te.value;
+			}
+			else if (2 == tf->transform_type) {
+				out.value.prf = te.value;
+			}
+			else if (3 == tf->transform_type) {
+				out.value.integ = te.value;
+			}
+			else if (4 == tf->transform_type) {
+				out.value.dh = te.value;
+			}
+			else if (5 == tf->transform_type) {
+				out.value.esn = te.value;
+			}
 		}
 		bp += tf_length;
 		++transform_number;
 	}
-	return 1;
+	return out;
 }// ike_parse_transforms()
 
 int ike_parse_sa_payload(unsigned char *buf,
@@ -691,10 +713,14 @@ int ike_parse_sa_payload(unsigned char *buf,
 			  prop->spi_size,
 			  prop->num_transforms);
 		sa->spid = prop->protocol_id;
-		if (!ike_parse_transforms(bp + sizeof(ike_sa_proposal),
-			                  prop_length - sizeof(ike_sa_proposal),
-					  prop->num_transforms)) {
-			zlog_error(zc, "problem parsing proposal %hhu", prop->proposal_num);
+		ikev2_transform_set_err_s tse;
+		tse = ike_parse_transforms(bp + sizeof(ike_sa_proposal),
+			                   prop_length - sizeof(ike_sa_proposal),
+					   prop->num_transforms);
+		if (tse.error) {
+			zlog_error(zc, "problem parsing proposal %hhu: %s",
+					prop->proposal_num,
+					tse.error);
 			return 0;
 		}
 		if (ep == bp + prop_length) {

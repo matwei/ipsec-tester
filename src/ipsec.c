@@ -1168,7 +1168,7 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
  * @param buflen number of received octets after buf.
  */
 void ike_handle_message(socket_msg *sm, ipsec_s *is,
-                        unsigned char * buf, ssize_t buflen) {
+                        unsigned char * buf, ssize_t * buflen) {
 	int fd = sm->sockfd;
 	ike_header *ih = (ike_header *)buf;
 	uint32_t ih_length = ntohl(ih->length);
@@ -1188,7 +1188,8 @@ void ike_handle_message(socket_msg *sm, ipsec_s *is,
 		  ih->flags);
 	switch (ih->extype) {
 		case EXCHANGE_IKE_SA_INIT:
-			ike_hm_ike_sa_init(sm, is, buf, buflen);
+			ike_hm_ike_sa_init(sm, is, buf, *buflen);
+			*buflen = 0;
 			break;
 		case EXCHANGE_IKE_AUTH:
 		case EXCHANGE_CREATE_CHILD_SA:
@@ -1241,7 +1242,7 @@ ssize_t ike_send_datagram(socket_msg *psm,
  */
 void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	socket_msg sm = { .sockfd=fd };
-	ssize_t result;
+	ssize_t dglen;
 	uint32_t spi = 0;
 	bool is_nat_t = false;
 
@@ -1250,24 +1251,23 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 	snprintf(mdc_buf,sizeof(mdc_buf),"%4.4x",mdc_cnt);
 	zlog_put_mdc("dg", mdc_buf);
 
-	if (0 >= (result = socket_recvmsg(&sm))) {
+	if (0 >= (dglen = socket_recvmsg(&sm))) {
 		return;
 	}
 
 	datagram_spec ds = {};
 	get_ds(&ds, &sm);
 	sm.ds = &ds;
+	unsigned char *sm_buf = sm.buf;
 
 	if (SOCK_DGRAM == ds.so_type) {
 		if (500 == ds.lport) {
 			zlog_category_t *zc = zlog_get_category("IKE");
 			zlog_debug(zc, "investigating IKE datagram");
 			if (!ike_approve_header(sm.buf,
-						result)) {
+						dglen)) {
 				zlog_info(zc, "IKE datagram not approved");
-			}
-			else {
-				ike_handle_message(&sm, is, sm.buf, result);
+				return;
 			}
 		}
 		else if (4500 == ds.lport) {
@@ -1275,25 +1275,27 @@ void ipsec_handle_datagram(int fd, ipsec_s * is) {
 			if (memcmp(&spi,sm.buf,4)) {
 				zlog_category_t *zc = zlog_get_category("ESP");
 				zlog_info(zc, "investigating NAT-T ESP datagram");
-				// we don't do anything yet
+				// this is an ESP datagram
 				return;
 			}
 			else {
 				zlog_category_t *zc = zlog_get_category("IKE");
 				zlog_info(zc, "investigating NAT-T IKE datagram");
 				if (!ike_approve_header(sm.buf+4,
-							result-4)) {
+							dglen-4)) {
 					zlog_info(zc, "IKE datagram not approved");
+					return;
 				}
 				else {
-					ike_handle_message(&sm, is, sm.buf+4, result-4);
+					sm_buf = sm.buf + 4;
+					dglen -= 4;
 				}
 			}
 		}
+		ike_handle_message(&sm, is, sm_buf, &dglen);
+		ike_send_datagram(&sm, is_nat_t, dglen);
 	}
 
-	// for now send an empty IKE message back
-	ike_send_datagram(&sm, is_nat_t, 0);
 }// ipsec_handle_datagram()
 
 buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf,

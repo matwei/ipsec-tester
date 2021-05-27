@@ -46,6 +46,25 @@ void ipsec_handle_datagram(int, ipsec_s *);
 
 #define ITIP_ZLOG_CONF "zlog.conf"
 
+/** internal transform struct
+ */
+typedef struct {
+	uint8_t type;
+	uint16_t id;
+	char * name;
+	union {
+		short keylen;
+	} attr;
+} ikev2_transform;
+
+typedef struct {
+	ikev2_transform * encr;
+	ikev2_transform * prf;
+	ikev2_transform * integ;
+	ikev2_transform * dh;
+	ikev2_transform * esn;
+} ikev2_transform_set;
+
 /**
  * The structure holding one peer in the SAD
  */
@@ -60,13 +79,7 @@ typedef struct {
 	/// the source address
 	struct in6_addr saddr;
 	char psaddr[INET6_ADDRSTRLEN];
-	struct {
-		uint16_t encr;
-		uint16_t prf;
-		uint16_t integ;
-		uint16_t dh;
-		uint16_t esn;
-	} transform;
+	ikev2_transform_set transform;
 } ipsec_sa;
 
 make_err_s(ipsec_sa *, ipsec_sa);

@@ -154,25 +154,6 @@ uint8_t * ike_notify_data(ike_notify_pl *);
 #define NPL_V 43
 #define NPL_SK 46
 
-/** internal transform struct
- */
-typedef struct {
-	uint8_t type;
-	uint16_t id;
-	char * name;
-	union {
-		short keylen;
-	} attr;
-} ikev2_transform;
-
-typedef struct {
-	ikev2_transform * encr;
-	ikev2_transform * prf;
-	ikev2_transform * integ;
-	ikev2_transform * dh;
-	ikev2_transform * esn;
-} ikev2_transform_set;
-
 typedef struct {
 	ikev2_transform_set value;
 	char const *error;
@@ -722,6 +703,10 @@ int ike_parse_sa_payload(unsigned char *buf,
 					prop->proposal_num,
 					tse.error);
 			return 0;
+		}
+		if (NULL == sa->transform.encr) {
+			// take the first transform and no other
+			memcpy(&sa->transform,&tse.value,sizeof(sa->transform));
 		}
 		if (ep == bp + prop_length) {
 			if (0 == prop->last_substruct) {

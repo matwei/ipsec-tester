@@ -306,6 +306,52 @@ int ike_approve_header(unsigned char *buf,
 }// ike_approve_header()
 
 /**
+ * Approve that the payloads don't exceed the buffer and use it fully.
+ *
+ * @param buf points at the beginning of the first payload.
+ *
+ * @param buflen is the size of the buffer for all payloads.
+ *
+ * @param fpl is the type of the first payload.
+ */
+int ike_approve_payloads(unsigned char *buf,
+		ssize_t buflen,
+		uint8_t fpl) {
+	unsigned char * bp = buf;
+	unsigned char * const ep = buf + buflen;
+	uint8_t npl = fpl;
+	zlog_category_t *zc = zlog_get_category("IKE");
+	while (bp < ep) {
+		ike_gph * ngph = (ike_gph*)bp;
+		uint16_t pl_length = ntohs(ngph->pl_length);
+		if (bp + pl_length > ep) {
+			zlog_error(zc,
+			          "length of payload %hhu exceeds buffer",
+				  npl);
+			return 0;
+		}
+		zlog_debug(zc,
+			  "payload %hhu, length: %hu",
+			  npl, pl_length);
+		npl = ngph->npl;
+		bp += pl_length;
+		if (NPL_NONE == npl && bp < ep) {
+			zlog_error(zc,
+			          "no next payload but %td bytes buffer left",
+				  ep - bp);
+			return 0;
+		}
+		else if (NPL_NONE != npl && bp >= ep) {
+			zlog_error(zc,
+			          "next payload %hhu but no bytes in buffer",
+				  npl);
+			return 0;
+		}
+	}
+	return 1;
+}// ike_approve_payloads()
+
+/**
  * Return char array containing name of protocol ID in proposal.
  *
  * @param protocol_id protocol ID in proposal from SA payload
@@ -1054,6 +1100,11 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 	uint8_t npl = ih->npl;
 	unsigned char * const ep = buf + buflen;
 	unsigned char *bp = buf + sizeof(ike_header);
+	if (!ike_approve_payloads(bp, buflen - sizeof(ike_header), npl)) {
+		zlog_error(zc,
+			  "payloads not approved");
+		return;
+	}
 	// TODO: add sa.daddr, sa.saddr
 	ipsec_sa sa = { .spi=ih->ispi, .spid=IKEv2_SPID_IKE };
 	memcpy(&sa.daddr,&sm->ds->laddr,sizeof(sa.daddr));
@@ -1063,15 +1114,6 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 	while (bp < ep) {
 		ike_gph * ngph = (ike_gph*)bp;
 		uint16_t pl_length = ntohs(ngph->pl_length);
-		if (bp + pl_length > ep) {
-			zlog_error(zc,
-			          "length of payload %hhu exceeds buffer",
-				  npl);
-			return;
-		}
-		zlog_debug(zc,
-			  "payload %hhu, length: %hu",
-			  npl, pl_length);
 		switch (npl) {
 			case 33: // Security Association (SA)
 				if (ike_parse_sa_payload(bp+sizeof(ike_gph),
@@ -1103,18 +1145,6 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 		}
 		npl = ngph->npl;
 		bp += pl_length;
-		if (NPL_NONE == npl && bp < ep) {
-			zlog_info(zc,
-			          "no next payload but %td bytes buffer left",
-				  ep - bp);
-			return;
-		}
-		else if (NPL_NONE != npl && bp >= ep) {
-			zlog_error(zc,
-			          "next payload %hhu but no bytes in buffer",
-				  npl);
-			return;
-		}
 	}
 	ipsec_sa_err_s insert = sad_put_record(&sa);
 	if (insert.error) {

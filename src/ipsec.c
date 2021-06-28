@@ -825,7 +825,8 @@ uint8_t * ike_ke_data(ike_ke_pl *kepl) {
  * @return 1 for success, 0 for failure
  */
 int ike_parse_ke_payload(unsigned char *buf,
-                          ssize_t buflen) {
+                         ssize_t buflen,
+			 ipsec_sa * sa) {
 	ike_ke_pl * kepl = (ike_ke_pl*)buf;
 	zlog_category_t *zc = zlog_get_category("IKE");
 	zlog_info(zc,
@@ -839,6 +840,16 @@ int ike_parse_ke_payload(unsigned char *buf,
 	          " DH group %hu, %hu byte key exchange data",
 		  ike_ke_dh_group_num(kepl),
 		  ike_ke_data_length(kepl));
+	if (ike_ke_dh_group_num(kepl) == sa->transform.dh->id) {
+		memcpy(&sa->key,buf + sizeof(ike_ke_pl), ike_ke_data_length(kepl));
+	}
+	else {
+		zlog_info(zc,
+		         "wrong KE payload, expected %hu got %hu",
+			 sa->transform.dh->id,
+			 ike_ke_dh_group_num(kepl));
+		return 0;
+	}
 	return 1;
 }// ike_parse_ke_payload()
 
@@ -1123,7 +1134,7 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 				}
 				break;
 			case 34: // Key Exchange
-				if (ike_parse_ke_payload(bp, pl_length)) {
+				if (ike_parse_ke_payload(bp, pl_length, &sa)) {
 					// TODO: use KE payload
 				}
 				break;

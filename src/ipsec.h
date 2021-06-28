@@ -31,6 +31,9 @@
 #define IKEv2_SPID_AH  2
 #define IKEv2_SPID_ESP 3
 
+/** maximal size of KE data (8192 bit) */
+#define MAX_KE_DATA	1024
+
 typedef struct {
 	int mdc_counter;
 } ipsec_s;
@@ -80,6 +83,10 @@ typedef struct {
 	struct in6_addr saddr;
 	char psaddr[INET6_ADDRSTRLEN];
 	ikev2_transform_set transform;
+	unsigned int state;
+	union {
+		uint8_t ke[MAX_KE_DATA];
+	} key;
 } ipsec_sa;
 
 make_err_s(ipsec_sa *, ipsec_sa);

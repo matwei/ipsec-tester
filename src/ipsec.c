@@ -863,7 +863,8 @@ int ike_parse_ke_payload(unsigned char *buf,
  * @return 1 for success, 0 for failure
  */
 int ike_parse_nonce_payload(unsigned char *buf,
-                          ssize_t buflen) {
+                            ssize_t buflen,
+			    ipsec_sa * sa) {
 	ike_gph * nph = (ike_gph *)buf;
 	uint16_t nonce_len = ntohs(nph->pl_length) - sizeof(ike_gph);
 	zlog_category_t *zc = zlog_get_category("IKE");
@@ -880,6 +881,8 @@ int ike_parse_nonce_payload(unsigned char *buf,
 		         nonce_len);
 		return 0;
 	}
+	sa->nonce.length = nonce_len;
+	memcpy(&sa->nonce.data, buf + sizeof(ike_gph), nonce_len);
 	zlog_info(zc,
 	          " %hu byte nonce data",
 		  nonce_len);
@@ -1139,7 +1142,7 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s *is,
 				}
 				break;
 			case 40: // Nonce
-				if (ike_parse_nonce_payload(bp, pl_length)) {
+				if (ike_parse_nonce_payload(bp, pl_length, &sa)) {
 					// TODO: use KE payload
 				}
 				break;

@@ -33,6 +33,8 @@
 
 /** maximal size of KE data (8192 bit) */
 #define MAX_KE_DATA	1024
+/** maximal size of Nonce data (2048 bit) */
+#define MAX_NONCE_DATA	256
 
 typedef struct {
 	int mdc_counter;
@@ -84,6 +86,10 @@ typedef struct {
 	char psaddr[INET6_ADDRSTRLEN];
 	ikev2_transform_set transform;
 	unsigned int state;
+	struct {
+		ssize_t length;
+		uint8_t data[MAX_NONCE_DATA];
+	} nonce;
 	union {
 		uint8_t ke[MAX_KE_DATA];
 	} key;

@@ -24,11 +24,11 @@
 #include <stdlib.h>
 
 typedef struct {
-	unsigned char * ptr;
-	size_t		len;
+	unsigned char *ptr;
+	size_t len;
 } chunk_t;
 
-char * bytearray_to_string(const char *, size_t, char *, size_t);
+char *bytearray_to_string(const char *, size_t, char *, size_t);
 
 // taken from: Klemens, 21 Century C, O'Reilly, 2013
 

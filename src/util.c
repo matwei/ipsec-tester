@@ -22,14 +22,14 @@
 
 #include "util.h"
 
-char * bytearray_to_string(const char * array, size_t as,
-			   char * buf, size_t bs) {
-	char * bp = buf;
-	char * const ep = buf + bs;
+char *bytearray_to_string(const char *array, size_t as, char *buf, size_t bs)
+{
+	char *bp = buf;
+	char *const ep = buf + bs;
 	for (int i = 0; i < as; i++) {
 		if (bp + 3 < ep) {
 			bp += sprintf(bp, "%02hhX", array[i]);
 		}
 	}
 	return buf;
-} // bytearray_to_string()
+}				// bytearray_to_string()

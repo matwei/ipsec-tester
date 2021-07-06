@@ -28,15 +28,15 @@
 
 #define SAD_RECORD_PRINT_BUFLEN 160
 
-static GList * sad;
+static GList *sad;
 
-static gint ipsec_sa_compare(gconstpointer a,
-                             gconstpointer b) {
-	ipsec_sa * sa_a = (ipsec_sa *)a;
-	ipsec_sa * sa_b = (ipsec_sa *)b;
+static gint ipsec_sa_compare(gconstpointer a, gconstpointer b)
+{
+	ipsec_sa *sa_a = (ipsec_sa *) a;
+	ipsec_sa *sa_b = (ipsec_sa *) b;
 
 	return memcmp(&sa_a->spi, &sa_b->spi, sizeof(sa_a->spi));
-} // ipsec_sa_compare()
+}				// ipsec_sa_compare()
 
 /**
  * create an SAD record with reverse addresses using new SPI
@@ -47,12 +47,14 @@ static gint ipsec_sa_compare(gconstpointer a,
  *
  * @return - the new SAD record and an error condition
  */
-ipsec_sa_err_s sad_add_reverse_record(ipsec_sa * peer, uint64_t spi) {
-	ipsec_sa new_sa = { .spi=spi, .spid=peer->spid };
+ipsec_sa_err_s sad_add_reverse_record(ipsec_sa * peer, uint64_t spi)
+{
+	ipsec_sa new_sa = {.spi = spi,.spid = peer->spid };
 	return sad_put_record(&new_sa);
-} // sad_add_reverse_record()
+}				// sad_add_reverse_record()
 
-ipsec_sa_err_s sad_del_record(ipsec_sa *peer) {
+ipsec_sa_err_s sad_del_record(ipsec_sa * peer)
+{
 	ipsec_sa_err_s out = sad_get_record(peer);
 
 	if (out.value) {
@@ -60,7 +62,7 @@ ipsec_sa_err_s sad_del_record(ipsec_sa *peer) {
 		out.value = 0;
 	}
 	return out;
-} // sad_del_record()
+}				// sad_del_record()
 
 /**
  * get an SAD record for the given peer
@@ -69,12 +71,13 @@ ipsec_sa_err_s sad_del_record(ipsec_sa *peer) {
  *
  * @return - the filled in template and an error condition
  */
-ipsec_sa_err_s sad_get_record(ipsec_sa *peer) {
-	ipsec_sa_err_s out = {};
-	ipsec_sa * sa_a = (ipsec_sa *)peer;
-	GList * cur = g_list_first(sad);
+ipsec_sa_err_s sad_get_record(ipsec_sa * peer)
+{
+	ipsec_sa_err_s out = { };
+	ipsec_sa *sa_a = (ipsec_sa *) peer;
+	GList *cur = g_list_first(sad);
 	while (cur) {
-		ipsec_sa * sa_b = (ipsec_sa *)cur->data;
+		ipsec_sa *sa_b = (ipsec_sa *) cur->data;
 		if (0 == memcmp(&sa_a->spi, &sa_b->spi, sizeof(sa_a->spi))) {
 			out.value = cur->data;
 			break;
@@ -82,7 +85,7 @@ ipsec_sa_err_s sad_get_record(ipsec_sa *peer) {
 		cur = cur->next;
 	}
 	return out;
-} // sad_get_record()
+}				// sad_get_record()
 
 /**
  * put a record into SAD
@@ -93,7 +96,8 @@ ipsec_sa_err_s sad_get_record(ipsec_sa *peer) {
  *
  * @return - an error condition
  */
-ipsec_sa_err_s sad_put_record(ipsec_sa *peer) {
+ipsec_sa_err_s sad_put_record(ipsec_sa * peer)
+{
 	ipsec_sa_err_s out = sad_get_record(peer);
 
 	if (out.value) {
@@ -105,41 +109,37 @@ ipsec_sa_err_s sad_put_record(ipsec_sa *peer) {
 	memcpy(out.value, peer, sizeof(ipsec_sa));
 
 	if (out.value) {
-		sad = g_list_insert_sorted(sad,
-		                           out.value,
-				           ipsec_sa_compare);
+		sad = g_list_insert_sorted(sad, out.value, ipsec_sa_compare);
 		// TODO: What happens when item can't be inserted?
-	}
-	else {
+	} else {
 		out.error = "could not allocate memory for SA record";
 	}
 	return out;
-} // sad_put_record()
+}				// sad_put_record()
 
-void sad_destroy() {
+void sad_destroy()
+{
 	g_list_free_full(g_steal_pointer(&sad), free);
-} // sad_destroy()
+}				// sad_destroy()
 
-void sad_dump_records(void (*pr)(const char *)) {
-	GList * cur = g_list_first(sad);
+void sad_dump_records(void (*pr)(const char *))
+{
+	GList *cur = g_list_first(sad);
 	char buf[SAD_RECORD_PRINT_BUFLEN] = "";
 	char saddrbuf[INET_ADDRSTRLEN];
 	char daddrbuf[INET_ADDRSTRLEN];
 	int num_entries = 0;
 	while (cur) {
-		ipsec_sa * sa_b = (ipsec_sa *)cur->data;
-		snprintf(buf,SAD_RECORD_PRINT_BUFLEN,
-		         "SPI:%" PRIx64 ", SPID:%" PRIx8 ", SA:%s, DA:%s",
-			 sa_b->spi, sa_b->spid,
-			 sa_b->psaddr,
-			 sa_b->pdaddr);
+		ipsec_sa *sa_b = (ipsec_sa *) cur->data;
+		snprintf(buf, SAD_RECORD_PRINT_BUFLEN,
+			 "SPI:%" PRIx64 ", SPID:%" PRIx8 ", SA:%s, DA:%s",
+			 sa_b->spi, sa_b->spid, sa_b->psaddr, sa_b->pdaddr);
 		pr(buf);
 		cur = cur->next;
 		++num_entries;
 	}
 	if (num_entries) {
-	}
-	else {
+	} else {
 		pr("empty SAD");
 	}
-} // sad_dump_records()
+}				// sad_dump_records()

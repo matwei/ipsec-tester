@@ -36,7 +36,7 @@ typedef struct {
 	/// The socket type (usually SOCK_DGRAM)
 	int so_type;
 	/// A pointer to a string describing the socket type
-	char * sock_type;
+	char *sock_type;
 	/// The destination address of a received datagram (local address)
 	char pladdr[INET6_ADDRSTRLEN];
 	/// The local address in network byte order
@@ -79,8 +79,8 @@ typedef struct {
 	struct iovec iov[1];
 	/// The cmsghdr and buffer for recvmsg() / sendmsg()
 	union {
-		struct cmsghdr cm; // this is to control the alignment
-		char   control[1000];
+		struct cmsghdr cm;	// this is to control the alignment
+		char control[1000];
 	} control_un;
 	/// The buffer for the received / sent data
 	unsigned char buf[MAX_SOCKET_BUF];
@@ -88,13 +88,13 @@ typedef struct {
 	datagram_spec *ds;
 } socket_msg;
 
-typedef void (*socket_cb_handler)(int sockfd, void * cb_env);
+typedef void (*socket_cb_handler)(int sockfd, void *cb_env);
 
-datagram_spec * get_ds(datagram_spec *ds, socket_msg * sm);
+datagram_spec *get_ds(datagram_spec * ds, socket_msg * sm);
 int socket_listen(char const *dev, socket_cb_handler cb, void *env);
-ssize_t socket_recvmsg(socket_msg *sm);
-ssize_t socket_sendmsg(socket_msg *sm);
+ssize_t socket_recvmsg(socket_msg * sm);
+ssize_t socket_sendmsg(socket_msg * sm);
 
-chunk_t socket_remote_address(socket_msg *sm);
+chunk_t socket_remote_address(socket_msg * sm);
 
 #endif /* !IISOCKETS_H */

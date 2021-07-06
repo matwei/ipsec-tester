@@ -45,7 +45,7 @@ typedef struct {
  *
  * \param fd the file descriptor of the receiving socket
  */
-typedef void (*ipsec_dg_handler)(int fd, ipsec_s *is);
+typedef void (*ipsec_dg_handler)(int fd, ipsec_s * is);
 
 void ipsec_handle_datagram(int, ipsec_s *);
 
@@ -56,18 +56,18 @@ void ipsec_handle_datagram(int, ipsec_s *);
 typedef struct {
 	uint8_t type;
 	uint16_t id;
-	char * name;
+	char *name;
 	union {
 		short keylen;
 	} attr;
 } ikev2_transform;
 
 typedef struct {
-	ikev2_transform * encr;
-	ikev2_transform * prf;
-	ikev2_transform * integ;
-	ikev2_transform * dh;
-	ikev2_transform * esn;
+	ikev2_transform *encr;
+	ikev2_transform *prf;
+	ikev2_transform *integ;
+	ikev2_transform *dh;
+	ikev2_transform *esn;
 } ikev2_transform_set;
 
 /**
@@ -102,8 +102,11 @@ ipsec_sa_err_s sad_get_record(ipsec_sa * peer);
 ipsec_sa_err_s sad_put_record(ipsec_sa * peer);
 void sad_dump_records(void (*pr)(const char *));
 
-buffer_const_err_s ike_find_last_payload(unsigned char const * buf, size_t buflen);
-buffer_const_err_s ike_response_ike_sa_init(unsigned char * buf, size_t buflen, ipsec_sa * peer);
-buffer_const_err_s ike_response_no_proposal_chosen(unsigned char * buf, size_t buflen);
+buffer_const_err_s ike_find_last_payload(unsigned char const *buf,
+					 size_t buflen);
+buffer_const_err_s ike_response_ike_sa_init(unsigned char *buf, size_t buflen,
+					    ipsec_sa * peer);
+buffer_const_err_s ike_response_no_proposal_chosen(unsigned char *buf,
+						   size_t buflen);
 
 #endif /* !IPSEC_H */

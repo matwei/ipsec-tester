@@ -33,25 +33,21 @@
  *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 #ifndef HAVE_SPUT_H
 #define HAVE_SPUT_H
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-
-    /* ===================================================================
-     *                             definitions
-     * =================================================================== */
+	/* ===================================================================
+	 *                             definitions
+	 * =================================================================== */
 
 #define SPUT_VERSION_MAJOR      1
 #define SPUT_VERSION_MINOR      4
@@ -61,60 +57,52 @@ extern "C" {
 #define SPUT_DEFAULT_SUITE_NAME "Unlabeled Suite"
 #define SPUT_DEFAULT_CHECK_NAME "Unlabeled Check"
 
-#define SPUT_INITIALIZED        0x06 /* ACK */
+#define SPUT_INITIALIZED        0x06	/* ACK */
 
+	/* ===================================================================
+	 *                        sput global variable
+	 * =================================================================== */
 
-    /* ===================================================================
-     *                        sput global variable
-     * =================================================================== */
+	static struct sput {
+		FILE *out;
+		char initialized;
 
-    static struct sput
-    {
-        FILE *out;
-        char  initialized;
+		struct sput_overall {
+			unsigned long checks;
+			unsigned long suites;
+			unsigned long ok;
+			unsigned long nok;
+		} overall;
 
-        struct sput_overall
-        {
-            unsigned long checks;
-            unsigned long suites;
-            unsigned long ok;
-            unsigned long nok;
-        } overall;
+		struct sput_suite {
+			const char *name;
+			unsigned long nr;
+			unsigned long checks;
+			unsigned long ok;
+			unsigned long nok;
+		} suite;
 
-        struct sput_suite
-        {
-            const char   *name;
-            unsigned long nr;
-            unsigned long checks;
-            unsigned long ok;
-            unsigned long nok;
-        } suite;
+		struct sput_test {
+			const char *name;
+			unsigned long nr;
+		} test;
 
-        struct sput_test
-        {
-            const char   *name;
-            unsigned long nr;
-        } test;
+		struct sput_check {
+			const char *name;
+			const char *cond;
+			const char *type;
+			unsigned long line;
+		} check;
 
-        struct sput_check
-        {
-            const char   *name;
-            const char   *cond;
-            const char   *type;
-            unsigned long line;
-        } check;
+		struct sput_time {
+			time_t start;
+			time_t end;
+		} time;
+	} __sput;
 
-        struct sput_time
-        {
-            time_t start;
-            time_t end;
-        } time;
-    } __sput;
-
-
-    /* ==================================================================
-     *                        sput internal macros
-     * ================================================================== */
+	/* ==================================================================
+	 *                        sput internal macros
+	 * ================================================================== */
 
 #define _sput_die_unless_initialized()                                     \
     if (__sput.initialized != SPUT_INITIALIZED)                            \
@@ -123,7 +111,6 @@ extern "C" {
         exit(EXIT_FAILURE);                                                \
     }
 
-
 #define _sput_die_unless_suite_set()                                       \
     if (! __sput.suite.name)                                               \
     {                                                                      \
@@ -131,14 +118,12 @@ extern "C" {
         exit(EXIT_FAILURE);                                                \
     }
 
-
 #define _sput_die_unless_test_set()                                        \
     if (! __sput.test.name)                                                \
     {                                                                      \
         fputs("sput_run_test() omitted\n", __sput.out);                    \
         exit(EXIT_FAILURE);                                                \
     }
-
 
 #define _sput_check_failed()                                               \
     {                                                                      \
@@ -155,7 +140,6 @@ extern "C" {
                 __sput.check.cond, __sput.check.line);                     \
     }
 
-
 #define _sput_check_succeeded()                                            \
     {                                                                      \
         _sput_die_unless_initialized();                                    \
@@ -169,10 +153,9 @@ extern "C" {
                 __sput.check.name);                                        \
     }
 
-
-    /* ==================================================================
-     *                            user macros
-     * ================================================================== */
+	/* ==================================================================
+	 *                            user macros
+	 * ================================================================== */
 
 #define sput_start_testing()                                               \
     do {                                                                   \
@@ -181,7 +164,6 @@ extern "C" {
         __sput.time.start  = time(NULL);                                   \
         __sput.initialized = SPUT_INITIALIZED;                             \
     } while (0)
-
 
 #define sput_leave_suite()                                                 \
     do {                                                                   \
@@ -201,10 +183,8 @@ extern "C" {
         memset(&__sput.suite, 0, sizeof(__sput.suite));                    \
     } while (0)
 
-
 #define sput_get_return_value()                                            \
     (__sput.overall.nok > 0 ? EXIT_FAILURE : EXIT_SUCCESS)
-
 
 #define sput_enter_suite(_name)                                            \
     do {                                                                   \
@@ -219,7 +199,6 @@ extern "C" {
         fprintf(__sput.out, "\n== Entering suite #%lu, \"%s\" ==\n\n",     \
                 __sput.suite.nr, __sput.suite.name);                       \
     } while (0)
-
 
 #define sput_finish_testing()                                              \
     do {                                                                   \
@@ -245,12 +224,10 @@ extern "C" {
                 "SUCCESS" : "FAILURE");                                    \
     } while (0)
 
-
 #define sput_set_output_stream(_fp)                                        \
     do {                                                                   \
         __sput.out = _fp != NULL ? _fp : stdout;                           \
     } while (0)
-
 
 #define sput_fail_if(_cond, _name)                                         \
     do {                                                                   \
@@ -274,7 +251,6 @@ extern "C" {
         }                                                                  \
     } while (0)
 
-
 #define sput_fail_unless(_cond, _name)                                     \
     do {                                                                   \
         _sput_die_unless_initialized();                                    \
@@ -297,7 +273,6 @@ extern "C" {
         }                                                                  \
     } while (0)
 
-
 #define sput_run_test(_func)                                               \
     do {                                                                   \
         _sput_die_unless_initialized();                                    \
@@ -307,13 +282,8 @@ extern "C" {
         _func();                                                           \
     } while (0)
 
-
 #ifdef __cplusplus
 }
 #endif
-
-
-#endif /* HAVE_SPUT_H */
-
-
+#endif				/* HAVE_SPUT_H */
 /* vim: set ft=c sts=4 sw=4 ts=4 ai et: */

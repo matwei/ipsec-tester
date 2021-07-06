@@ -4,6 +4,7 @@
 
 **/*.o
 **/*.swp
+**/*~
 
 Makefile
 Makefile.in

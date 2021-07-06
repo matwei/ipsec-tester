@@ -993,7 +993,7 @@ const char *ike_notify_message_type_name(ike_notify_pl * npl)
  * @return 1 for success, 0 for failure
  */
 int ike_parse_notify_payload(unsigned char *buf,
-			     ssize_t buflen, socket_msg * sm)
+			     ssize_t buflen, ipsec_sa * sa, socket_msg * sm)
 {
 	ike_notify_pl *npl = (ike_notify_pl *) buf;
 	uint16_t notify_len = ntohs(npl->gph.pl_length);
@@ -1020,6 +1020,7 @@ int ike_parse_notify_payload(unsigned char *buf,
 						  rportn,
 						  buf +
 						  sizeof(ike_notify_pl))) {
+			sa->options.snat = 1;
 			zlog_info(zc, "  NAT detected");
 		} else {
 			zlog_info(zc, "  no NAT detected");
@@ -1032,6 +1033,7 @@ int ike_parse_notify_payload(unsigned char *buf,
 						  lportn,
 						  buf +
 						  sizeof(ike_notify_pl))) {
+			sa->options.dnat = 1;
 			zlog_info(zc, "  NAT detected");
 		} else {
 			zlog_info(zc, "  no NAT detected");
@@ -1118,7 +1120,7 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s * is,
 			}
 			break;
 		case 41:	// Notify
-			if (ike_parse_notify_payload(bp, pl_length, sm)) {
+			if (ike_parse_notify_payload(bp, pl_length, &sa, sm)) {
 				// TODO: use KE payload
 			}
 			break;

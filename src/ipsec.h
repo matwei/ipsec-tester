@@ -90,6 +90,10 @@ typedef struct {
 		ssize_t length;
 		uint8_t data[MAX_NONCE_DATA];
 	} nonce;
+	struct {
+		unsigned int snat:1;
+		unsigned int dnat:1;
+	} options;
 	union {
 		uint8_t ke[MAX_KE_DATA];
 	} key;

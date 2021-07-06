@@ -1014,7 +1014,6 @@ int ike_parse_notify_payload(unsigned char *buf,
 		  " notify %s (%hu) with %hu byte length",
 		  ike_notify_message_type_name(npl), nmt, notify_len);
 	if (NOTIFY_MT_NAT_DETECTION_SOURCE_IP == nmt) {
-		zlog_info(zc, " NAT detection saddr (%hu)", nmt);
 		if (ike_notify_address_translated(sm->buf,
 						  sm->ds->raddress,
 						  (unsigned char *)&sm->ds->
@@ -1027,7 +1026,6 @@ int ike_parse_notify_payload(unsigned char *buf,
 		}
 	}
 	if (NOTIFY_MT_NAT_DETECTION_DESTINATION_IP == nmt) {
-		zlog_info(zc, " NAT detection daddr (%hu)", nmt);
 		if (ike_notify_address_translated(sm->buf,
 						  sm->ds->laddress,
 						  (unsigned char *)&sm->ds->

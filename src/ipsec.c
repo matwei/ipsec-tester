@@ -1039,6 +1039,15 @@ int ike_parse_notify_payload(unsigned char *buf,
 			zlog_info(zc, "  no NAT detected");
 		}
 	}
+	if (NOTIFY_MT_IKEV2_FRAGMENTATION_SUPPORTED == nmt) {
+		// TODO
+	}
+	if (NOTIFY_MT_SIGNATURE_HASH_ALGORITHMS == nmt) {
+		// TODO
+	}
+	if (NOTIFY_MT_REDIRECT_SUPPORTED == nmt) {
+		// TODO
+	}
 	return 1;
 }				// ike_parse_notify_payload()
 

@@ -1044,6 +1044,12 @@ int ike_parse_notify_payload(unsigned char *buf,
 		sa->options.fragmentation_supported = 1;
 	}
 	if (NOTIFY_MT_SIGNATURE_HASH_ALGORITHMS == nmt) {
+		// see https://datatracker.ietf.org/doc/html/rfc7427#section-4
+		//
+		// The Notification Data field contains the list of 16-bit hash
+		// algorithm identifiers from the Hash Algorithm Identifiers of IANA's
+		// "Internet Key Exchange Version 2 (IKEv2) Parameters" registry.  There
+		// is no padding between the hash algorithm identifiers.
 		// TODO
 	}
 	if (NOTIFY_MT_REDIRECT_SUPPORTED == nmt) {

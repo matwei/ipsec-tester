@@ -93,6 +93,7 @@ typedef struct {
 	struct {
 		unsigned int snat:1;
 		unsigned int dnat:1;
+		unsigned int fragmentation_supported:1;
 	} options;
 	union {
 		uint8_t ke[MAX_KE_DATA];

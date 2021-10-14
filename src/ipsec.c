@@ -1040,7 +1040,8 @@ int ike_parse_notify_payload(unsigned char *buf,
 		}
 	}
 	if (NOTIFY_MT_IKEV2_FRAGMENTATION_SUPPORTED == nmt) {
-		// TODO
+		// see https://datatracker.ietf.org/doc/html/rfc7383#section-2.3
+		sa->options.fragmentation_supported = 1;
 	}
 	if (NOTIFY_MT_SIGNATURE_HASH_ALGORITHMS == nmt) {
 		// TODO

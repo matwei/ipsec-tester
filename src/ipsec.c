@@ -169,6 +169,25 @@ static ikev2_transform transforms[] = {
 	{ }			// sentinel
 };				//  ikev2_transform transforms[]
 
+typedef struct {
+	uint16_t value;
+	char const *name;
+} ikev2_hash_algorithm;
+
+static ikev2_hash_algorithm signature_hash_algorithms[] = {
+	{0, "Reserved" },	// RFC7427
+	{1, "SHA1" },		// RFC7427
+	{2, "SHA2-256" },	// RFC7427
+	{3, "SHA2-384" },	// RFC7427
+	{4, "SHA2-512" },	// RFC7427
+	{5, "Identity" },	// RFC8420
+	{6, "STRIBOG_256" },	// draft-smyslov-ike2-gost-02
+	{7, "STRIBOG_512" },	// draft-smyslov-ike2-gost-02
+	// no sentinel here because this is only used to find the name
+	// and I want the following to work:
+	// sizeof(signature_hash_algorithms)/sizeof(ikev2_hash_algorithm)
+};	// signature_hash_algorithms[]
+
 /**
  * Add a payload to a buffer
  *
@@ -1050,7 +1069,20 @@ int ike_parse_notify_payload(unsigned char *buf,
 		// algorithm identifiers from the Hash Algorithm Identifiers of IANA's
 		// "Internet Key Exchange Version 2 (IKEv2) Parameters" registry.  There
 		// is no padding between the hash algorithm identifiers.
-		// TODO
+		// TODO: pick an algorithm
+		uint16_t *shap = (uint16_t *)(npl+1);
+		for (int i = 0; i < (notify_len - sizeof(ike_notify_pl))/2; i++) {
+			int ha = ntohs(shap[i]);
+			if (ha < sizeof(signature_hash_algorithms)/sizeof(ikev2_hash_algorithm)) {
+				zlog_info(zc, "  HASH_ALGORITHM: %hu (%s)",
+					  ha, signature_hash_algorithms[ha].name);
+			}
+			else {
+				zlog_debug(zc,
+					   "unknown signature hash algorithm: %hu",
+					   ha);
+			}
+		}
 	}
 	if (NOTIFY_MT_REDIRECT_SUPPORTED == nmt) {
 		// TODO

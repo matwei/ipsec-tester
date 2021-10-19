@@ -98,6 +98,8 @@ typedef struct {
 	union {
 		uint8_t ke[MAX_KE_DATA];
 	} key;
+	/// the picked hash algorithm according to RFC7427
+	uint16_t signature_hash_algorithm;
 } ipsec_sa;
 
 make_err_s(ipsec_sa *, ipsec_sa);

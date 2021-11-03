@@ -1089,6 +1089,7 @@ int ike_parse_notify_payload(unsigned char *buf,
 	}
 	else {
 		zlog_info(zc, "  ignoring this payload");
+		return 0;
 	}
 	return 1;
 }				// ike_parse_notify_payload()
@@ -1167,12 +1168,12 @@ void ike_hm_ike_sa_init(socket_msg * sm, ipsec_s * is,
 			break;
 		case 40:	// Nonce
 			if (ike_parse_nonce_payload(bp, pl_length, &sa)) {
-				// TODO: use KE payload
+				// TODO: use Nonce payload
 			}
 			break;
 		case 41:	// Notify
 			if (ike_parse_notify_payload(bp, pl_length, &sa, sm)) {
-				// TODO: use KE payload
+				// TODO: use Notify payload
 			}
 			break;
 			// TODO: parse other payloads

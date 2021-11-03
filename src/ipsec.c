@@ -1045,7 +1045,7 @@ int ike_parse_notify_payload(unsigned char *buf,
 			zlog_info(zc, "  no NAT detected");
 		}
 	}
-	if (NOTIFY_MT_NAT_DETECTION_DESTINATION_IP == nmt) {
+	else if (NOTIFY_MT_NAT_DETECTION_DESTINATION_IP == nmt) {
 		if (ike_notify_address_translated(sm->buf,
 						  sm->ds->laddress,
 						  (unsigned char *)&sm->ds->
@@ -1058,11 +1058,11 @@ int ike_parse_notify_payload(unsigned char *buf,
 			zlog_info(zc, "  no NAT detected");
 		}
 	}
-	if (NOTIFY_MT_IKEV2_FRAGMENTATION_SUPPORTED == nmt) {
+	else if (NOTIFY_MT_IKEV2_FRAGMENTATION_SUPPORTED == nmt) {
 		// see https://datatracker.ietf.org/doc/html/rfc7383#section-2.3
 		sa->options.fragmentation_supported = 1;
 	}
-	if (NOTIFY_MT_SIGNATURE_HASH_ALGORITHMS == nmt) {
+	else if (NOTIFY_MT_SIGNATURE_HASH_ALGORITHMS == nmt) {
 		// see https://datatracker.ietf.org/doc/html/rfc7427#section-4
 		//
 		// The Notification Data field contains the list of 16-bit hash
@@ -1084,8 +1084,11 @@ int ike_parse_notify_payload(unsigned char *buf,
 			}
 		}
 	}
-	if (NOTIFY_MT_REDIRECT_SUPPORTED == nmt) {
+	else if (NOTIFY_MT_REDIRECT_SUPPORTED == nmt) {
 		sa->options.redirect_supported = 1;
+	}
+	else {
+		zlog_info(zc, "  ignoring this payload");
 	}
 	return 1;
 }				// ike_parse_notify_payload()

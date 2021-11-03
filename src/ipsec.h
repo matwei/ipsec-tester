@@ -94,6 +94,7 @@ typedef struct {
 		unsigned int snat:1;
 		unsigned int dnat:1;
 		unsigned int fragmentation_supported:1;
+		unsigned int redirect_supported:1;	// see RFC5685
 	} options;
 	union {
 		uint8_t ke[MAX_KE_DATA];

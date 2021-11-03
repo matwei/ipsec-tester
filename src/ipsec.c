@@ -1085,7 +1085,7 @@ int ike_parse_notify_payload(unsigned char *buf,
 		}
 	}
 	if (NOTIFY_MT_REDIRECT_SUPPORTED == nmt) {
-		// TODO
+		sa->options.redirect_supported = 1;
 	}
 	return 1;
 }				// ike_parse_notify_payload()

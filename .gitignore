@@ -1,5 +1,33 @@
-
 # PDFs here are generated
 
 *.pdf
+
+**/*.o
+**/*.swp
+
+Makefile
+Makefile.in
+Makefile.old
+aclocal.m4
+autom4te.cache/
+build/
+compile
+config.guess
+config.h.in
+config.log
+config.status
+config.sub
+configure
+doc/doxygen/html
+doc/doxygen/latex
+depcomp
+install-sh
+itip
+itip.out
+itip.pid
+missing
+src/.deps/
+src/.dirstamp
+tags
+test_ipsec
 

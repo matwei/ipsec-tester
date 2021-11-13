@@ -1,0 +1,6 @@
+--exclude=compile
+--exclude=config*
+--exclude=depcomp
+--exclude=doc
+--exclude=Makefile
+--exclude=missing

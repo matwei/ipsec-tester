@@ -1,30 +1,138 @@
 
 # IPsec Tester
 
-This is a system usable for learning and possible debugging IPsec.
+This is a program to analyze IPsec IKEv2 traffic.
 
-It consists of
+It interprets IPsec messages and acts on them.
 
-* an IPsec translator, that talks IKE and IPsec on the network
-* a data store that holds configuration and ephemeral data like packet
-  captures, logs, state
-* the IPsec RS interpreter that can interpret the data in the store and
-  trigger actions of the IPsec translator
+The goal of this program is
+to better understand the function of existing IPsec implementations.
 
-The purpose of the system is to find a uniform vocabulary for the
-configuration and state of IPsec implementations from different vendors.
+# Installation
 
-![IPsec Tester](images/ipsec-tester-dfd.png)
+## Prerequisites
 
-To use the system you would either connect with an web browser to the IPsec RS
-interpreter to define the configuration of an IPsec connection or you could
-use the command line interface of the interpreter.
+This program makes use of the [Zlog library][zlog] for flexible logging.
 
-Afterwards you can connect with your IPsec gateway to the IPsec translator
-and try to get a VPN tunnel established.
+The cryptographic functions are provided by [Libgcrypt][libgcrypt].
 
-Alternatively you could trigger the IPsec translator to establish a VPN
-tunnel to your gateway.
+### Zlog library
 
-In the interpreter you can see the view from the other side of the VPN tunnel.
+To install the library you got to
+https://github.com/HardySimpson/zlog/releases
+and download a suitable version.
+Version 1.2.14 is known to work,
+any later version will probably work as well.
 
+After you downloaded the sources
+you extract the archive,
+change into the directory,
+compile and install the library.
+
+    tar -zxvf zlog-1.2.14.tar.gz
+    cd zlog-1.2.14
+    make
+    sudo make install
+
+After you have installed the library
+you have to update the cache of the dynamic linker
+so that it can be found by the running programm.
+Just call
+
+    ldconfig -v
+
+and make sure that the library is found.
+
+### Libgcrypt
+
+Libgcrypt is easier to install
+because it is available on many Linux distributions.
+Make sure to install the development package.
+
+On Ubuntu 18.04 you can install it like this:
+
+    apt install libgcrypt20-dev
+
+## Installing
+
+The program make use of [GNU Autoconf][autoconf].
+After having installed the development files
+of the Zlog library and Libgcrypt,
+you may clone the repository,
+reconfigure the Makefile and compile the program.
+
+    git clone https://github.com/matwei/ipsec-tester.git
+    cd ipsec-tester
+    autoreconf -i
+    ./configure
+    make
+
+If you want set the *CAP_NET_BIND_SERVICE* capability,
+you can use the `set-capabilities` target of the Makefile
+
+    make set-capabilities
+
+# Usage
+
+To use the program just call it
+and watch the output while a VPN gateway is trying
+to contact your machine.
+
+    ./itip
+
+## Configuration
+
+At the moment the only configuration is through the file zlog.conf,
+which configures the logging of the Zlog library.
+You can define a different log format and send the logs to different targets.
+
+Please look up the [zlog User's Guide][zlogug]
+for details about the logging configuration.
+
+# Security
+
+Because this program needs to bind to UDP port 500 and raw sockets,
+it needs elevated privileges.
+
+If your system supports POSIX capabilities,
+it is recommended to give the compiled program
+the *CAP_NET_BIND_SERVICE* capability.
+
+The Makefile provides this capability
+when called as `make test-capabilities`:
+
+    sudo setcap cap_net_bind_service=ep $(bin_PROGRAMS)
+
+# Testing
+
+## Module tests with Sput
+
+The programm `test_ipsec`,
+that is compiled by calling the make target `test_ipsec`,
+performs some module tests when invoked.
+This program uses the [Sput Unit Testing Framework for C/C++][sput].
+
+## Shell tests using BATS
+
+There are system tests of the compiled program in directory *t/*.
+These tests use [BATS][] (the Bash Automated Testing System)
+and need the programs `nc` (Netcat), `xxd` (Vim) and `cmp` (Diffutils)
+to execute the tests.
+You invoke these tests like this:
+
+    bats t
+
+or
+
+    bats -t t
+
+Unfortunately there are versions of BATS that don't work with these tests.
+Especially *bat-core-1.1.0* that is shipped with Ubuntu 20.04
+will not work with these tests. Versions *1.2.1* and *1.3.0* are known to work.
+
+[autoconf]: https://www.gnu.org/software/autoconf/
+[BATS]: https://github.com/bats-core/bats-core
+[libgcrypt]: https://gnupg.org/software/libgcrypt/
+[sput]: https://www.use-strict.de/sput-unit-testing/
+[zlog]: https://hardysimpson.github.io/zlog/
+[zlogug]: http://hardysimpson.github.io/zlog/UsersGuide-EN.html
